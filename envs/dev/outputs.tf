@@ -50,3 +50,15 @@ output "push_platform_application_arn" {
   description = "SNS platform application ARN for PUSH_SNS_PLATFORM_APPLICATION_ARN (fcourt-gitops scripts/apply-terraform-outputs.sh)."
   value       = module.push.platform_application_arn
 }
+output "media_bucket_name" {
+  description = "Media bucket for STORAGE_S3_BUCKET (fcourt-gitops scripts/apply-terraform-outputs.sh)."
+  value       = module.media.bucket_name
+}
+output "media_public_base_url" {
+  description = "Regional virtual-hosted bucket URL for STORAGE_PUBLIC_BASE_URL."
+  value       = module.media.public_base_url
+}
+output "media_service_role_arns" {
+  description = "Per-service S3 Pod Identity roles (auth, facility, discovery, payment, booking)."
+  value       = module.media.service_role_arns
+}

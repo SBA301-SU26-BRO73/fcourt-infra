@@ -23,6 +23,7 @@ fcourt-infra/
 │   ├── eks/                   # cluster, node group, add-ons, access entries
 │   ├── pod-identity/          # IAM roles + Pod Identity for LBC and External Secrets, generic extra associations
 │   ├── ecr/                   # one repository per service (used by envs/shared only)
+│   ├── media/                 # per-env media bucket (prefix-scoped public read) and per-service S3 Pod Identity roles
 │   ├── push/                  # SNS FCM platform app, alarms, notification-service role, optional reminders
 │   ├── budget/                # monthly cost budget with email alerts
 │   ├── rds/                   # PostgreSQL (prod)

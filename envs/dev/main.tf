@@ -50,13 +50,21 @@ module "pod_identity" {
   env          = local.env
   tags         = local.tags
 
-  extra_associations = {
-    notification-service = {
+  extra_associations = merge(
+    {
+      notification-service = {
+        namespace       = local.namespace
+        service_account = "notification-service"
+        role_arn        = module.push.notification_service_role_arn
+      }
+    },
+    # Media bucket access: one least-privilege role per service, bound to the service account of the same name.
+    { for svc, arn in module.media.service_role_arns : svc => {
       namespace       = local.namespace
-      service_account = "notification-service"
-      role_arn        = module.push.notification_service_role_arn
-    }
-  }
+      service_account = svc
+      role_arn        = arn
+    } }
+  )
 }
 module "push" {
   source                        = "../../modules/push"
@@ -79,4 +87,12 @@ module "budget" {
   amount        = var.monthly_budget_usd
   email_address = var.budget_email
   tags          = local.tags
+}
+module "media" {
+  source           = "../../modules/media"
+  bucket_name      = "${local.name}-media-${data.aws_caller_identity.current.account_id}"
+  role_name_prefix = "${local.name}-media"
+  cluster_arn      = module.eks.cluster_arn
+  force_destroy    = true # dev is torn down by scripts/down.sh
+  tags             = local.tags
 }
