@@ -1,0 +1,2 @@
+# Set firebase_service_account_json via TF_VAR_firebase_service_account_json instead.
+aws_region = "ap-southeast-1"

@@ -76,6 +76,27 @@ aws ec2 describe-nat-gateways --region ap-southeast-1 --filter Name=tag:Project,
 
 Pastikan `kubectl get ingress,pvc -A` kosong sebelum destroy. Daftar AWS di atas read-only dan perlu diperiksa manual; leftover ALB/ENI bisa menahan penghapusan VPC. State bucket bootstrap sengaja `prevent_destroy`, tidak dihapus saat dev destroy.
 
+## Test push không cần EKS
+
+`envs/push-test` tạo SNS FCM platform application và delivery logging role/policy trực tiếp, không cần cluster EKS. Root này dùng Terraform local state; state có chứa Firebase key, vì vậy không đưa state ra khỏi máy và xóa state cùng tài nguyên ngay sau khi thử. Chi phí dự kiến gần bằng không khi chỉ thử ngắn, nhưng con số này chưa được xác minh.
+
+Đặt đường dẫn file JSON Firebase vào biến môi trường (giá trị được đọc từ file, không đưa nội dung key vào command history), rồi chạy init và apply:
+
+```sh
+export TF_VAR_firebase_service_account_json="$(cat /path/to/firebase-service-account.json)"
+terraform -chdir=envs/push-test init
+terraform -chdir=envs/push-test apply
+```
+
+Sau khi kiểm tra ARN output hoặc hoàn tất thử nghiệm, hủy tài nguyên và xóa biến môi trường:
+
+```sh
+terraform -chdir=envs/push-test destroy
+unset TF_VAR_firebase_service_account_json
+```
+
+Không sao chép `envs/push-test/terraform.tfstate` hoặc backup của nó ra khỏi máy; xóa state local sau khi destroy thành công.
+
 ## Node sizing dev
 
 Node group dùng `SPOT`, min/desired/max `1/1/2`, root gp3 mã hóa 20 GiB và bắt buộc IMDSv2. Bốn loại mặc định `t3a.xlarge`, `t3.xlarge`, `m5a.xlarge`, `m5.xlarge` đa dạng hóa Spot trong cùng lớp 4 vCPU/16 GiB. Khi đổi `eks_instance_types`, nên chọn các loại có cùng dung lượng; `eks_capacity_type`, `eks_min_size`, `eks_desired_size`, `eks_max_size` và `eks_root_volume_size` cũng là biến cấu hình.

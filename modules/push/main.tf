@@ -9,7 +9,8 @@ data "aws_region" "current" {
 }
 data "aws_eks_cluster" "existing" {
 
-  name = var.eks_cluster_name
+  count = var.create_workload_role ? 1 : 0
+  name  = var.eks_cluster_name
 
 }
 
@@ -22,7 +23,8 @@ locals {
 
 resource "aws_iam_role" "sns_delivery_logging" {
 
-  name = "${var.name_prefix}-sns-delivery-logging"
+  count = var.enable_delivery_logging ? 1 : 0
+  name  = "${var.name_prefix}-sns-delivery-logging"
   assume_role_policy = jsonencode({
 
     Version = "2012-10-17"
@@ -43,8 +45,9 @@ resource "aws_iam_role" "sns_delivery_logging" {
 
 resource "aws_iam_role_policy" "sns_delivery_logging" {
 
-  name = "${var.name_prefix}-sns-delivery-logging"
-  role = aws_iam_role.sns_delivery_logging.id
+  count = var.enable_delivery_logging ? 1 : 0
+  name  = "${var.name_prefix}-sns-delivery-logging"
+  role  = aws_iam_role.sns_delivery_logging[0].id
   policy = jsonencode({
 
     Version = "2012-10-17"
@@ -69,16 +72,18 @@ resource "aws_sns_platform_application" "push" {
   platform            = "GCM"
   platform_credential = var.firebase_service_account_json
 
-  success_feedback_role_arn    = aws_iam_role.sns_delivery_logging.arn
-  failure_feedback_role_arn    = aws_iam_role.sns_delivery_logging.arn
-  success_feedback_sample_rate = var.delivery_success_sample_rate
+  # Delivery status logging needs iam:PassRole for the caller; it is optional so a restricted user can still create the application.
+  success_feedback_role_arn    = var.enable_delivery_logging ? aws_iam_role.sns_delivery_logging[0].arn : null
+  failure_feedback_role_arn    = var.enable_delivery_logging ? aws_iam_role.sns_delivery_logging[0].arn : null
+  success_feedback_sample_rate = var.enable_delivery_logging ? var.delivery_success_sample_rate : null
   depends_on                   = [aws_iam_role_policy.sns_delivery_logging]
 
 }
 
 resource "aws_iam_role" "notification_service" {
 
-  name = "${var.name_prefix}-notification-service"
+  count = var.create_workload_role ? 1 : 0
+  name  = "${var.name_prefix}-notification-service"
   assume_role_policy = var.identity_mode == "pod_identity" ? jsonencode({
 
     Version = "2012-10-17"
@@ -95,7 +100,7 @@ resource "aws_iam_role" "notification_service" {
           "aws:SourceAccount" = data.aws_caller_identity.current.account_id
         }
         ArnEquals = {
-          "aws:SourceArn" = data.aws_eks_cluster.existing.arn
+          "aws:SourceArn" = data.aws_eks_cluster.existing[0].arn
         }
 
       }
@@ -137,14 +142,22 @@ resource "aws_iam_role" "notification_service" {
 
     }
 
+    precondition {
+
+      condition     = !var.create_workload_role || var.eks_cluster_name != ""
+      error_message = "eks_cluster_name is required when create_workload_role is true."
+
+    }
+
   }
 
 }
 
 resource "aws_iam_role_policy" "notification_service" {
 
-  name = "${var.name_prefix}-notification-service"
-  role = aws_iam_role.notification_service.id
+  count = var.create_workload_role ? 1 : 0
+  name  = "${var.name_prefix}-notification-service"
+  role  = aws_iam_role.notification_service[0].id
   policy = jsonencode({
 
     Version = "2012-10-17"
@@ -176,9 +189,9 @@ resource "aws_iam_role_policy" "notification_service" {
 # Reminder flow permissions are a separate policy so they only exist when the flow is enabled.
 resource "aws_iam_role_policy" "notification_service_reminder" {
 
-  count = var.enable_reminder ? 1 : 0
+  count = var.create_workload_role && var.enable_reminder ? 1 : 0
   name  = "${var.name_prefix}-notification-service-reminder"
-  role  = aws_iam_role.notification_service.id
+  role  = aws_iam_role.notification_service[0].id
   policy = jsonencode({
 
     Version = "2012-10-17"

@@ -8,8 +8,17 @@ variable "name_prefix" {
 
 variable "eks_cluster_name" {
 
-  description = "Name of an existing EKS cluster used to scope the Pod Identity trust policy."
+  description = "Name of an existing EKS cluster used to scope the workload role trust policy; required only when create_workload_role is true."
   type        = string
+  default     = ""
+
+}
+
+variable "create_workload_role" {
+
+  description = "Create the IAM role and policies that notification-service pods assume through Pod Identity or IRSA."
+  type        = bool
+  default     = true
 
 }
 
@@ -80,6 +89,14 @@ variable "oidc_provider_arn" {
   description = "EKS OIDC provider ARN   required when identity_mode is irsa."
   type        = string
   default     = ""
+
+}
+
+variable "enable_delivery_logging" {
+
+  description = "Create the SNS delivery status logging role and attach it to the platform application. Needs iam:PassRole for the caller."
+  type        = bool
+  default     = true
 
 }
 

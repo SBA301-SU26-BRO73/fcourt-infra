@@ -2,6 +2,8 @@
 **/.terraform/**
 *.tfstate
 *.tfstate.*
+envs/push-test/terraform.tfstate*
+envs/push-test/.terraform/
 *.tfvars
 !*.tfvars.example
 backend.hcl
@@ -13,3 +15,7 @@ backend.hcl
 *.tfplan
 *.pem
 *.key
+
+# saved plans can contain sensitive values such as the Firebase key
+tfplan
+**/tfplan
