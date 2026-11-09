@@ -15,12 +15,12 @@ variable "vpc_cidr" {
 variable "cluster_version" {
   description = "EKS Kubernetes version."
   type        = string
-  default     = "1.34"
+  default     = "1.35"
 }
 variable "eks_instance_types" {
-  description = "Diversified 4-vCPU, 16-GiB EC2 Spot types for the demo node group."
+  description = "Diversified 2-vCPU, 8-GiB EC2 types for the demo node group (Spot pool diversification)."
   type        = list(string)
-  default     = ["t3a.xlarge", "t3.xlarge", "m5a.xlarge", "m5.xlarge"]
+  default     = ["t3.large", "t3a.large", "m6i.large"]
 }
 variable "eks_capacity_type" {
   description = "Managed node group capacity type."
@@ -37,9 +37,9 @@ variable "eks_root_volume_size" {
   default     = 20
 }
 variable "eks_min_size" {
-  description = "Minimum EKS worker count; keep at least one for dev."
+  description = "Minimum EKS worker count; dev needs 2 for the 12 services plus data."
   type        = number
-  default     = 1
+  default     = 2
   validation {
     condition     = var.eks_min_size >= 1
     error_message = "At least one EKS worker is required."
@@ -48,7 +48,7 @@ variable "eks_min_size" {
 variable "eks_desired_size" {
   description = "Desired EKS worker count for dev."
   type        = number
-  default     = 1
+  default     = 2
   validation {
     condition     = var.eks_desired_size >= var.eks_min_size && var.eks_desired_size <= var.eks_max_size
     error_message = "eks_desired_size must be between eks_min_size and eks_max_size."

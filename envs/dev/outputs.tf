@@ -18,14 +18,6 @@ output "vpc_id" {
   description = "VPC ID."
   value       = module.network.vpc_id
 }
-output "ecr_registry_urls" {
-  description = "ECR repository URLs by service."
-  value       = module.ecr.repository_urls
-}
-output "ecr_registry_url" {
-  description = "ECR registry hostname for image push/pull login."
-  value       = module.ecr.registry_url
-}
 output "notification_service_role_arn" {
   description = "Notification-service Pod Identity role."
   value       = module.push.notification_service_role_arn
@@ -41,4 +33,16 @@ output "external_secrets_role_arn" {
 output "ebs_csi_role_arn" {
   description = "EBS CSI Pod Identity role."
   value       = module.eks.ebs_csi_role_arn
+}
+# ECR lives in envs/shared (long-lived). These are derived, not read from that state,
+# so this root applies on an empty account even before envs/shared exists.
+data "aws_caller_identity" "current" {}
+
+output "ecr_registry_url" {
+  description = "ECR registry hostname (repos fcourt/<service> are owned by envs/shared)."
+  value       = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+}
+output "ecr_repository_prefix" {
+  description = "Repository prefix used by envs/shared: <registry>/fcourt/<service>."
+  value       = "fcourt"
 }

@@ -58,15 +58,10 @@ module "pod_identity" {
     }
   }
 }
-module "ecr" {
-  source            = "../../modules/ecr"
-  repository_prefix = local.name
-  tags              = local.tags
-}
 module "push" {
   source                        = "../../modules/push"
   name_prefix                   = "${local.name}-push"
-  eks_cluster_name              = module.eks.cluster_name
+  eks_cluster_arn               = module.eks.cluster_arn
   firebase_service_account_json = var.firebase_service_account_json
   alert_topic_arn               = var.alert_topic_arn
   enable_reminder               = var.enable_reminder

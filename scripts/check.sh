@@ -14,7 +14,7 @@ else
   errors=1
 fi
 
-for dir in "$ROOT"/envs/bootstrap "$ROOT"/envs/dev "$ROOT"/envs/prod "$ROOT"/envs/sandbox/*; do
+for dir in "$ROOT"/envs/bootstrap "$ROOT"/envs/dev "$ROOT"/envs/shared "$ROOT"/envs/prod "$ROOT"/envs/sandbox/*; do
   [ -d "$dir" ] || continue
   echo "==> $dir"
   if terraform -chdir="$dir" init -backend=false -input=false >/dev/null && terraform -chdir="$dir" validate; then
@@ -24,5 +24,13 @@ for dir in "$ROOT"/envs/bootstrap "$ROOT"/envs/dev "$ROOT"/envs/prod "$ROOT"/env
     errors=1
   fi
 done
+
+echo "==> ECR must live only in envs/shared"
+if grep -ls "modules/ecr" "$ROOT"/envs/dev/*.tf "$ROOT"/envs/prod/*.tf >/dev/null 2>&1; then
+  echo "FAIL: dev or prod references modules/ecr"
+  errors=1
+else
+  echo "PASS ecr only in shared"
+fi
 
 exit "$errors"
