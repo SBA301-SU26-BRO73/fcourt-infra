@@ -19,7 +19,9 @@ variable "services" {
     "payment-service",
     "staff-operations-service",
     "notification-service",
-    "pos-retail-service"
+    "pos-retail-service",
+    "eureka-server",
+    "gateway-service"
   ]
   validation {
     condition     = length(var.services) > 0 && length(distinct(var.services)) == length(var.services)
