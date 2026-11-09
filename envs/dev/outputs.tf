@@ -46,3 +46,7 @@ output "ecr_repository_prefix" {
   description = "Repository prefix used by envs/shared: <registry>/fcourt/<service>."
   value       = "fcourt"
 }
+output "push_platform_application_arn" {
+  description = "SNS platform application ARN for PUSH_SNS_PLATFORM_APPLICATION_ARN (fcourt-gitops scripts/apply-terraform-outputs.sh)."
+  value       = module.push.platform_application_arn
+}
