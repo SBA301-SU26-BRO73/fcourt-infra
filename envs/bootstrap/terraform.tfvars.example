@@ -1,0 +1,2 @@
+aws_region        = "ap-southeast-1"
+state_bucket_name = "fcourt-terraform-state-ACCOUNT-UNIQUE"
