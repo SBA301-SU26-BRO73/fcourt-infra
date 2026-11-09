@@ -1,0 +1,15 @@
+aws_region = "ap-southeast-1"
+name_prefix = "push-dev"
+eks_cluster_name = "REPLACE_WITH_EXISTING_EKS_CLUSTER_NAME"
+
+# Supply securely; do not put the service-account JSON in this file.
+# For example: set TF_VAR_firebase_service_account_json in your shell/CI secret store.
+
+# Default is EKS Pod Identity. For IRSA, set identity_mode = "irsa" and provide the OIDC provider ARN.
+identity_mode       = "pod_identity"
+eks_namespace       = "fcourt-dev"
+eks_service_account = "notification-service"
+# oidc_provider_arn = "arn:aws:iam::ACCOUNT_ID:oidc-provider/oidc.eks.ap-southeast-1.amazonaws.com/id/CLUSTER_ID"
+
+# alert_topic_arn = "arn:aws:sns:ap-southeast-1:ACCOUNT_ID:YOUR_EXISTING_ALERT_TOPIC"
+enable_reminder = false

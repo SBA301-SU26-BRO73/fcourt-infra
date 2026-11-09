@@ -1,0 +1,14 @@
+aws_region       = "ap-southeast-1"
+name_prefix      = "push-prod"
+eks_cluster_name = "REPLACE_WITH_EXISTING_EKS_CLUSTER_NAME"
+
+# Set TF_VAR_firebase_service_account_json through the approved secret store.
+# Never paste credentials into this file.
+
+# Pod Identity is the default. Set identity_mode = "irsa" and oidc_provider_arn only if needed.
+identity_mode       = "pod_identity"
+eks_namespace       = "fcourt-prod"
+eks_service_account = "notification-service"
+# oidc_provider_arn = "arn:aws:iam::ACCOUNT_ID:oidc-provider/oidc.eks.ap-southeast-1.amazonaws.com/id/CLUSTER_ID"
+
+enable_reminder = false
