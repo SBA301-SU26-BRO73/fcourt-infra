@@ -7,6 +7,9 @@
 backend.hcl
 **/backend.hcl
 *.json
+!modules/workload-identity/lbc-iam-policy.json
 *service-account*key*
 *firebase*key*
 *.tfplan
+*.pem
+*.key

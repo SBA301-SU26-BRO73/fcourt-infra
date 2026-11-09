@@ -1,6 +1,6 @@
-# Copy to backend.hcl and replace every placeholder with your team's actual state settings.
-# Do not commit the completed backend.hcl. The S3 bucket must already exist and be secured.
-bucket       = "REPLACE_WITH_EXISTING_TERRAFORM_STATE_BUCKET"
+# Copy to backend.hcl and replace the placeholder with the bucket created by envs/bootstrap.
+# Do not commit the completed backend.hcl.
+bucket       = "fcourt-terraform-state-ACCOUNT-UNIQUE"
 key          = "fcourt/dev/terraform.tfstate"
 region       = "ap-southeast-1"
 encrypt      = true

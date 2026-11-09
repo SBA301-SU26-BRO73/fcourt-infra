@@ -1,5 +1,5 @@
-# Copy to backend.hcl and replace placeholders. Never commit the completed file.
-bucket       = "REPLACE_WITH_EXISTING_TERRAFORM_STATE_BUCKET"
+# Copy to backend.hcl and replace with the bucket created by envs/bootstrap. Never commit it.
+bucket       = "fcourt-terraform-state-ACCOUNT-UNIQUE"
 key          = "fcourt/prod/terraform.tfstate"
 region       = "ap-southeast-1"
 encrypt      = true

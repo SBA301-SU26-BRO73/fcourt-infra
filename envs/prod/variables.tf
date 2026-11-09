@@ -3,78 +3,66 @@ variable "aws_region" {
   type        = string
   default     = "ap-southeast-1"
 }
-
-variable "name_prefix" {
-  description = "Unique prefix for production resources."
+variable "vpc_cidr" {
+  description = "Production VPC CIDR; must not overlap connected networks."
   type        = string
-  default     = "push-prod"
+  default     = "10.50.0.0/16"
 }
-
-variable "eks_cluster_name" {
-  description = "Name of the existing EKS cluster; this configuration only looks it up."
+variable "cluster_version" {
+  description = "EKS Kubernetes version."
   type        = string
+  default     = "1.34"
 }
-
+variable "eks_instance_types" {
+  description = "Production worker EC2 instance types."
+  type        = list(string)
+  default     = ["m7i.large"]
+}
+variable "eks_min_size" {
+  description = "Minimum EKS worker count for production."
+  type        = number
+  default     = 3
+}
+variable "eks_desired_size" {
+  description = "Desired EKS worker count for production."
+  type        = number
+  default     = 3
+}
+variable "eks_max_size" {
+  description = "Maximum EKS worker count for production."
+  type        = number
+  default     = 9
+}
+variable "cluster_public_access_cidrs" {
+  description = "Allowed trusted public client CIDRs for the Kubernetes API."
+  type        = list(string)
+}
+variable "admin_principal_arns" {
+  description = "IAM user/role ARNs granted cluster-admin access. Required; keep tightly scoped."
+  type        = list(string)
+}
 variable "firebase_service_account_json" {
-  description = "Firebase service-account JSON content; pass securely through TF_VAR_firebase_service_account_json."
+  description = "Sensitive Firebase service-account JSON passed from an approved secret store; never commit it."
   type        = string
   sensitive   = true
 }
-
 variable "alert_topic_arn" {
-  description = "Existing SNS topic ARN for alarm actions; empty disables actions."
+  description = "Optional existing SNS topic ARN for alarms."
   type        = string
   default     = ""
 }
-
 variable "enable_reminder" {
-  description = "Enable reminder SQS queues and EventBridge Scheduler resources."
+  description = "Enable notification reminder queues and schedules."
   type        = bool
   default     = false
 }
-
-variable "enable_dlq_alarm" {
-  description = "Create the reminder DLQ alarm."
+variable "enable_flow_logs" {
+  description = "Enable VPC Flow Logs; adds CloudWatch ingestion and storage cost."
   type        = bool
   default     = true
 }
-
-variable "identity_mode" {
-  description = "Workload identity: EKS Pod Identity (default) or IRSA."
-  type        = string
-  default     = "pod_identity"
-  validation {
-    condition     = contains(["pod_identity", "irsa"], var.identity_mode)
-    error_message = "identity_mode must be pod_identity or irsa."
-  }
-}
-
-variable "eks_namespace" {
-  description = "Namespace for notification-service."
-  type        = string
-  default     = "fcourt-prod"
-}
-
-variable "eks_service_account" {
-  description = "Service account for notification-service."
-  type        = string
-  default     = "notification-service"
-}
-
-variable "oidc_provider_arn" {
-  description = "Existing OIDC provider ARN; required only for IRSA."
-  type        = string
-  default     = ""
-}
-
-variable "delivery_success_sample_rate" {
-  description = "SNS successful delivery log sample percentage, from 0 to 100."
-  type        = number
-  default     = 0
-}
-
-variable "tags" {
-  description = "Default tags for production resources."
-  type        = map(string)
-  default     = { Environment = "prod", ManagedBy = "Terraform" }
+variable "enable_ecr_endpoints" {
+  description = "Enable paid ECR interface endpoints for private image pulls."
+  type        = bool
+  default     = false
 }
