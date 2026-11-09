@@ -1,0 +1,11 @@
+aws_region = "ap-southeast-1"
+
+# Only this repository (refs dev and main) may assume the CI push role.
+github_repository = "SBA301-SU26-BRO73/fcourt-backend"
+github_refs       = ["dev", "main"]
+
+# Set to false if the account already has a token.actions.githubusercontent.com OIDC provider
+# (aws iam list-open-id-connect-providers); it is then looked up instead of created.
+create_github_oidc_provider = true
+
+tagged_image_count = 10

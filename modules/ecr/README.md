@@ -1,6 +1,6 @@
 # ecr
 
-One immutable, scanned ECR repository per service with a lifecycle policy for untagged and old tagged images.
+One scanned ECR repository per service with a lifecycle policy for untagged and old tagged images. Tag mutability is configurable (`image_tag_mutability`, default IMMUTABLE; `envs/shared` uses MUTABLE so CI can move the `dev` tag). Used only by `envs/shared`.
 
 ## Usage
 

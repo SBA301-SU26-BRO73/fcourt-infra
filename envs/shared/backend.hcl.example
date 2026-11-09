@@ -1,0 +1,6 @@
+# Copy to backend.hcl and replace with the bucket created by envs/bootstrap. Never commit it.
+bucket       = "fcourt-terraform-state-ACCOUNT-UNIQUE"
+key          = "fcourt/shared/terraform.tfstate"
+region       = "ap-southeast-1"
+encrypt      = true
+use_lockfile = true

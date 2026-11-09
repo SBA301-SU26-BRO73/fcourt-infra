@@ -47,6 +47,16 @@ variable "untagged_image_retention_days" {
   }
 }
 
+variable "image_tag_mutability" {
+  description = "MUTABLE lets CI move tags such as dev; IMMUTABLE forbids re-pushing a tag."
+  type        = string
+  default     = "IMMUTABLE"
+  validation {
+    condition     = contains(["MUTABLE", "IMMUTABLE"], var.image_tag_mutability)
+    error_message = "image_tag_mutability must be MUTABLE or IMMUTABLE."
+  }
+}
+
 variable "tags" {
   description = "Tags applied to supported resources."
   type        = map(string)
