@@ -21,7 +21,5 @@ variable "node_security_group_id" {
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)
-  default = {
-
-  }
+  default     = {}
 }

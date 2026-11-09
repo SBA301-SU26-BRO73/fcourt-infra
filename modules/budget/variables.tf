@@ -15,6 +15,10 @@ variable "amount" {
 variable "email_address" {
   description = "Email subscriber for actual and forecasted budget alerts."
   type        = string
+  validation {
+    condition     = can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$", var.email_address))
+    error_message = "email_address must be a valid email address."
+  }
 }
 
 variable "tags" {

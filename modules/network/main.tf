@@ -1,78 +1,61 @@
-data "aws_region" "current" {
-
-}
-data "aws_caller_identity" "current" {
-
-}
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
 locals {
-
-  tags = merge(var.tags, {
-    Project = "fcourt", Env = var.env, ManagedBy = "terraform"
-  })
   nat_az_indexes = var.nodes_in_public_subnets ? [] : (var.single_nat_gateway ? [0] : [0, 1, 2])
-
 }
 resource "aws_vpc" "this" {
-
   cidr_block           = var.cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-vpc"
   })
-
 }
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-igw"
   })
 }
 resource "aws_subnet" "public" {
-
   count                   = 3
   vpc_id                  = aws_vpc.this.id
   cidr_block              = var.public_subnet_cidrs[count.index]
   availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = true
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-public-${count.index + 1}", "kubernetes.io/role/elb" = "1", "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   })
-
 }
 resource "aws_subnet" "private" {
-
   count             = 3
   vpc_id            = aws_vpc.this.id
   cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = var.availability_zones[count.index]
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-private-${count.index + 1}", "kubernetes.io/role/internal-elb" = "1", "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   })
-
 }
 resource "aws_eip" "nat" {
   count  = length(local.nat_az_indexes)
   domain = "vpc"
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-nat-${count.index + 1}"
   })
   depends_on = [aws_internet_gateway.this]
 }
 resource "aws_nat_gateway" "this" {
-
   count         = length(local.nat_az_indexes)
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[local.nat_az_indexes[count.index]].id
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-nat-${count.index + 1}"
   })
   depends_on = [aws_internet_gateway.this]
-
 }
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-public"
   })
 }
@@ -89,17 +72,15 @@ resource "aws_route_table_association" "public" {
 resource "aws_route_table" "private" {
   count  = 3
   vpc_id = aws_vpc.this.id
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-private-${count.index + 1}"
   })
 }
 resource "aws_route" "private_nat" {
-
   count                  = var.nodes_in_public_subnets ? 0 : 3
   route_table_id         = aws_route_table.private[count.index].id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.this[var.single_nat_gateway ? 0 : count.index].id
-
 }
 resource "aws_route_table_association" "private" {
   count          = 3
@@ -107,15 +88,13 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private[count.index].id
 }
 resource "aws_vpc_endpoint" "s3" {
-
   vpc_id            = aws_vpc.this.id
   service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
   vpc_endpoint_type = "Gateway"
   route_table_ids   = aws_route_table.private[*].id
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-s3-endpoint"
   })
-
 }
 resource "aws_vpc_endpoint" "ecr_api" {
   count               = var.enable_ecr_endpoints ? 1 : 0
@@ -125,10 +104,9 @@ resource "aws_vpc_endpoint" "ecr_api" {
   subnet_ids          = aws_subnet.private[*].id
   private_dns_enabled = true
   security_group_ids  = [aws_security_group.endpoints[0].id]
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-ecr-api-endpoint"
   })
-
 }
 resource "aws_vpc_endpoint" "ecr_dkr" {
   count               = var.enable_ecr_endpoints ? 1 : 0
@@ -138,10 +116,9 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   subnet_ids          = aws_subnet.private[*].id
   private_dns_enabled = true
   security_group_ids  = [aws_security_group.endpoints[0].id]
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-ecr-dkr-endpoint"
   })
-
 }
 resource "aws_security_group" "endpoints" {
   count       = var.enable_ecr_endpoints ? 1 : 0
@@ -149,7 +126,7 @@ resource "aws_security_group" "endpoints" {
   description = "HTTPS access to VPC interface endpoints"
   vpc_id      = aws_vpc.this.id
   egress      = []
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-endpoints"
   })
 }
@@ -172,10 +149,9 @@ resource "aws_cloudwatch_log_group" "flow" {
   count             = var.enable_flow_logs ? 1 : 0
   name              = "/aws/vpc/${var.name}/flow-logs"
   retention_in_days = 30
-  tags              = local.tags
+  tags              = var.tags
 }
 resource "aws_iam_role" "flow_logs" {
-
   count = var.enable_flow_logs ? 1 : 0
   name  = "${var.name}-vpc-flow-logs"
   assume_role_policy = jsonencode({
@@ -185,8 +161,7 @@ resource "aws_iam_role" "flow_logs" {
       }, Action = "sts:AssumeRole"
     }]
   })
-  tags = local.tags
-
+  tags = var.tags
 }
 resource "aws_iam_role_policy" "flow_logs" {
   count = var.enable_flow_logs ? 1 : 0
@@ -204,5 +179,5 @@ resource "aws_flow_log" "this" {
   traffic_type    = "ALL"
   log_destination = aws_cloudwatch_log_group.flow[0].arn
   iam_role_arn    = aws_iam_role.flow_logs[0].arn
-  tags            = local.tags
+  tags            = var.tags
 }

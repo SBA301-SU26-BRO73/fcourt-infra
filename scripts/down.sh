@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
+# Tear down the dev environment: remove Ingresses/PVCs first (they own ALBs and EBS volumes),
+# then terraform destroy, then list tagged leftovers (read-only). Usage: sh scripts/down.sh
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
@@ -29,6 +31,7 @@ if [ -n "${remaining:-}" ]; then
   exit 1
 fi
 
+terraform -chdir="$DEV_DIR" init -backend-config=backend.hcl
 terraform -chdir="$DEV_DIR" destroy
 
 echo "Read-only inventory of tagged fcourt leftovers in $AWS_REGION:"

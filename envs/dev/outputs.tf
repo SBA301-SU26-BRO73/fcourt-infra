@@ -32,11 +32,11 @@ output "notification_service_role_arn" {
 }
 output "load_balancer_controller_role_arn" {
   description = "AWS Load Balancer Controller role."
-  value       = module.workload_identity.load_balancer_controller_role_arn
+  value       = module.pod_identity.load_balancer_controller_role_arn
 }
 output "external_secrets_role_arn" {
   description = "External Secrets Operator role."
-  value       = module.workload_identity.external_secrets_role_arn
+  value       = module.pod_identity.external_secrets_role_arn
 }
 output "ebs_csi_role_arn" {
   description = "EBS CSI Pod Identity role."

@@ -1,6 +1,13 @@
-module "push" {
+locals {
+  tags = {
+    Project   = "fcourt"
+    Env       = "push-test"
+    ManagedBy = "terraform"
+  }
+}
 
-  source                        = "../../modules/push"
+module "push" {
+  source                        = "../../../modules/push"
   name_prefix                   = "fcourt-test-push"
   create_workload_role          = false
   enable_delivery_logging       = false
@@ -8,10 +15,5 @@ module "push" {
   enable_reminder               = false
   enable_dlq_alarm              = false
   alert_topic_arn               = ""
-  tags = {
-    Project   = "fcourt"
-    Env       = "push-test"
-    ManagedBy = "terraform"
-  }
-
+  tags                          = local.tags
 }

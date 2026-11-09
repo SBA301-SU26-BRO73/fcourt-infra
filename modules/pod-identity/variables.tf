@@ -1,37 +1,34 @@
 variable "cluster_name" {
-
-  description = "EKS cluster name supplied by the environment root."
+  description = "EKS cluster name."
   type        = string
-
 }
 
-variable "namespace" {
-
-  description = "Kubernetes namespace for the service account."
+variable "cluster_arn" {
+  description = "EKS cluster ARN; constrains the Pod Identity trust policy."
   type        = string
-
 }
 
-variable "service_account_name" {
-
-  description = "Kubernetes service account name."
+variable "env" {
+  description = "Environment name (dev, prod); scopes Secrets Manager reads to /fcourt/<env>/*."
   type        = string
-
+  validation {
+    condition     = contains(["dev", "prod"], var.env)
+    error_message = "env must be dev or prod."
+  }
 }
 
-variable "role_arn" {
-
-  description = "Existing IAM role ARN to associate with the service account."
-  type        = string
-
+variable "extra_associations" {
+  description = "Pod Identity associations for IAM roles created outside this module, keyed by a stable name."
+  type = map(object({
+    namespace       = string
+    service_account = string
+    role_arn        = string
+  }))
+  default = {}
 }
 
 variable "tags" {
-
-  description = "Tags applied to the association when supported."
+  description = "Common resource tags."
   type        = map(string)
-  default = {
-
-  }
-
+  default     = {}
 }

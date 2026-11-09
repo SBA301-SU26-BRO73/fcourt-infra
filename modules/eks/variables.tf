@@ -56,6 +56,10 @@ variable "min_size" {
   description = "Minimum managed node group size."
   type        = number
   default     = 1
+  validation {
+    condition     = var.min_size >= 1
+    error_message = "min_size must be at least 1."
+  }
 }
 variable "desired_size" {
   description = "Desired managed node group size."
@@ -66,6 +70,10 @@ variable "max_size" {
   description = "Maximum managed node group size."
   type        = number
   default     = 3
+  validation {
+    condition     = var.max_size >= var.min_size
+    error_message = "max_size must be greater than or equal to min_size."
+  }
 }
 variable "cluster_log_types" {
   description = "EKS control-plane log types enabled."
@@ -93,7 +101,5 @@ variable "admin_principal_arns" {
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)
-  default = {
-
-  }
+  default     = {}
 }

@@ -11,10 +11,3 @@ variable "state_bucket_name" {
     error_message = "S3 bucket name must be 3 to 63 characters."
   }
 }
-variable "tags" {
-  description = "Tags applied to the bootstrap resources."
-  type        = map(string)
-  default = {
-    Project = "fcourt", Env = "bootstrap", ManagedBy = "terraform"
-  }
-}

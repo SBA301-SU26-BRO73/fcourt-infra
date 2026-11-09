@@ -2,14 +2,14 @@ variable "name" {
   description = "Name prefix for network resources."
   type        = string
 }
-variable "env" {
-  description = "Environment name used in tags."
-  type        = string
-}
 variable "cidr" {
   description = "IPv4 CIDR for the VPC."
   type        = string
   default     = "10.0.0.0/16"
+  validation {
+    condition     = can(cidrhost(var.cidr, 0))
+    error_message = "cidr must be a valid IPv4 CIDR block."
+  }
 }
 variable "availability_zones" {
   description = "Three ap-southeast-1 availability zones."
@@ -65,7 +65,5 @@ variable "cluster_name" {
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)
-  default = {
-
-  }
+  default     = {}
 }

@@ -1,17 +1,10 @@
 data "aws_region" "current" {}
-data "aws_partition" "current" {
-
-}
-locals {
-  tags = merge(var.tags, {
-    Project = "fcourt", ManagedBy = "terraform"
-  })
-}
+data "aws_partition" "current" {}
 resource "aws_cloudwatch_log_group" "cluster" {
   count             = length(var.cluster_log_types) > 0 ? 1 : 0
   name              = "/aws/eks/${var.cluster_name}/cluster"
   retention_in_days = var.cloudwatch_log_retention_days
-  tags              = local.tags
+  tags              = var.tags
 }
 resource "aws_kms_key" "cluster" {
   count = var.enable_secrets_encryption ? 1 : 0
@@ -37,14 +30,10 @@ resource "aws_kms_key" "cluster" {
       }
     ]
   })
-  tags = local.tags
-
+  tags = var.tags
 }
-data "aws_caller_identity" "current" {
-
-}
+data "aws_caller_identity" "current" {}
 resource "aws_iam_role" "cluster" {
-
   name = "${var.cluster_name}-cluster"
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{
@@ -53,8 +42,7 @@ resource "aws_iam_role" "cluster" {
       }, Action = "sts:AssumeRole"
     }]
   })
-  tags = local.tags
-
+  tags = var.tags
 }
 resource "aws_iam_role_policy_attachment" "cluster" {
   for_each   = toset(["arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSClusterPolicy", "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSVPCResourceController"])
@@ -66,7 +54,7 @@ resource "aws_security_group" "cluster" {
   description = "EKS control plane security group"
   vpc_id      = var.vpc_id
   egress      = []
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.cluster_name}-control-plane"
   })
 }
@@ -75,7 +63,7 @@ resource "aws_security_group" "nodes" {
   description = "EKS managed worker nodes"
   vpc_id      = var.vpc_id
   egress      = []
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.cluster_name}-nodes", "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   })
 }
@@ -112,7 +100,6 @@ resource "aws_vpc_security_group_egress_rule" "control_plane_all" {
   ip_protocol       = "-1"
 }
 resource "aws_iam_role" "node" {
-
   name = "${var.cluster_name}-nodes"
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{
@@ -121,8 +108,7 @@ resource "aws_iam_role" "node" {
       }, Action = "sts:AssumeRole"
     }]
   })
-  tags = local.tags
-
+  tags = var.tags
 }
 resource "aws_iam_role_policy_attachment" "node" {
   for_each   = toset(["arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy", "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly", "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKS_CNI_Policy"])
@@ -130,7 +116,6 @@ resource "aws_iam_role_policy_attachment" "node" {
   policy_arn = each.value
 }
 resource "aws_iam_role" "ebs_csi" {
-
   name = "${var.cluster_name}-ebs-csi"
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{
@@ -145,15 +130,13 @@ resource "aws_iam_role" "ebs_csi" {
       }
     }]
   })
-  tags = local.tags
-
+  tags = var.tags
 }
 resource "aws_iam_role_policy_attachment" "ebs_csi" {
   role       = aws_iam_role.ebs_csi.name
   policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 resource "aws_eks_cluster" "this" {
-
   name     = var.cluster_name
   role_arn = aws_iam_role.cluster.arn
   version  = var.cluster_version
@@ -179,8 +162,7 @@ resource "aws_eks_cluster" "this" {
   }
   enabled_cluster_log_types = var.cluster_log_types
   depends_on                = [aws_iam_role_policy_attachment.cluster, aws_cloudwatch_log_group.cluster]
-  tags                      = local.tags
-
+  tags                      = var.tags
 }
 resource "aws_eks_access_entry" "admin" {
   for_each      = toset(var.admin_principal_arns)
@@ -198,7 +180,6 @@ resource "aws_eks_access_policy_association" "admin" {
   }
 }
 resource "aws_eks_node_group" "this" {
-
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.cluster_name}-workers"
   node_role_arn   = aws_iam_role.node.arn
@@ -218,11 +199,9 @@ resource "aws_eks_node_group" "this" {
     version = aws_launch_template.nodes.latest_version
   }
   depends_on = [aws_eks_access_policy_association.admin, aws_iam_role_policy_attachment.node]
-  tags       = local.tags
-
+  tags       = var.tags
 }
 resource "aws_launch_template" "nodes" {
-
   name_prefix            = "${var.cluster_name}-node-"
   update_default_version = true
   block_device_mappings {
@@ -246,39 +225,34 @@ resource "aws_launch_template" "nodes" {
   }
   tag_specifications {
     resource_type = "instance"
-    tags = merge(local.tags, {
+    tags = merge(var.tags, {
       Name = "${var.cluster_name}-worker"
     })
   }
   tag_specifications {
     resource_type = "volume"
-    tags          = local.tags
+    tags          = var.tags
   }
   tag_specifications {
     resource_type = "network-interface"
-    tags          = local.tags
+    tags          = var.tags
   }
-  tags = local.tags
-
+  tags = var.tags
 }
 resource "aws_eks_addon" "core" {
-
   for_each                    = toset(["vpc-cni", "coredns", "kube-proxy", "eks-pod-identity-agent", "aws-ebs-csi-driver"])
   cluster_name                = aws_eks_cluster.this.name
   addon_name                  = each.value
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "PRESERVE"
-  tags                        = local.tags
+  tags                        = var.tags
   depends_on                  = [aws_eks_node_group.this]
-
 }
 resource "aws_eks_pod_identity_association" "ebs_csi" {
-
   cluster_name    = aws_eks_cluster.this.name
   namespace       = "kube-system"
   service_account = "ebs-csi-controller-sa"
   role_arn        = aws_iam_role.ebs_csi.arn
-  tags            = local.tags
+  tags            = var.tags
   depends_on      = [aws_eks_addon.core, aws_iam_role_policy_attachment.ebs_csi]
-
 }

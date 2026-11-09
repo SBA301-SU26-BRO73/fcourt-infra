@@ -1,14 +1,9 @@
-locals {
-  tags = merge(var.tags, {
-    Project = "fcourt", ManagedBy = "terraform"
-  })
-}
 resource "aws_security_group" "this" {
   name        = "${var.name}-kafka"
   description = "Kafka TLS from EKS nodes only"
   vpc_id      = var.vpc_id
   egress      = []
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-kafka"
   })
 }
@@ -26,7 +21,6 @@ resource "aws_vpc_security_group_egress_rule" "all" {
   ip_protocol       = "-1"
 }
 resource "aws_msk_serverless_cluster" "this" {
-
   cluster_name = var.name
   client_authentication {
     sasl {
@@ -40,6 +34,5 @@ resource "aws_msk_serverless_cluster" "this" {
     subnet_ids         = var.subnet_ids
     security_group_ids = [aws_security_group.this.id]
   }
-  tags = local.tags
-
+  tags = var.tags
 }

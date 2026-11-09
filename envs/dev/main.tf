@@ -1,15 +1,19 @@
 locals {
-  env  = "dev"
-  name = "fcourt-dev"
+  env       = "dev"
+  name      = "fcourt-dev"
+  namespace = local.name # Kubernetes namespace for application workloads
+
+  # Applied to every resource through module inputs and provider default_tags.
   tags = {
-    Project = "fcourt", Env = "dev", ManagedBy = "terraform"
+    Project   = "fcourt"
+    Env       = local.env
+    ManagedBy = "terraform"
   }
 }
-module "network" {
 
+module "network" {
   source                  = "../../modules/network"
   name                    = local.name
-  env                     = local.env
   cluster_name            = local.name
   cidr                    = var.vpc_cidr
   single_nat_gateway      = true
@@ -17,10 +21,8 @@ module "network" {
   enable_flow_logs        = var.enable_flow_logs
   enable_ecr_endpoints    = var.enable_interface_endpoints
   tags                    = local.tags
-
 }
 module "eks" {
-
   source                        = "../../modules/eks"
   cluster_name                  = local.name
   cluster_version               = var.cluster_version
@@ -40,54 +42,45 @@ module "eks" {
   cluster_public_access_cidrs   = var.cluster_public_access_cidrs
   admin_principal_arns          = var.admin_principal_arns
   tags                          = local.tags
-
 }
-module "workload_identity" {
-
-  source       = "../../modules/workload-identity"
+module "pod_identity" {
+  source       = "../../modules/pod-identity"
   cluster_name = module.eks.cluster_name
   cluster_arn  = module.eks.cluster_arn
   env          = local.env
   tags         = local.tags
 
+  extra_associations = {
+    notification-service = {
+      namespace       = local.namespace
+      service_account = "notification-service"
+      role_arn        = module.push.notification_service_role_arn
+    }
+  }
 }
 module "ecr" {
-
   source            = "../../modules/ecr"
-  repository_prefix = "fcourt-dev"
+  repository_prefix = local.name
   tags              = local.tags
-
 }
 module "push" {
-
   source                        = "../../modules/push"
-  name_prefix                   = "fcourt-dev-push"
+  name_prefix                   = "${local.name}-push"
   eks_cluster_name              = module.eks.cluster_name
   firebase_service_account_json = var.firebase_service_account_json
   alert_topic_arn               = var.alert_topic_arn
   enable_reminder               = var.enable_reminder
   enable_dlq_alarm              = true
   identity_mode                 = "pod_identity"
-  eks_namespace                 = "fcourt-dev"
+  eks_namespace                 = local.namespace
   eks_service_account           = "notification-service"
   oidc_provider_arn             = ""
   delivery_success_sample_rate  = 0
   tags                          = local.tags
-
-}
-module "notification_service_pod_identity" {
-
-  source               = "../../modules/pod-identity"
-  cluster_name         = module.eks.cluster_name
-  namespace            = "fcourt-dev"
-  service_account_name = "notification-service"
-  role_arn             = module.push.notification_service_role_arn
-  tags                 = local.tags
-
 }
 module "budget" {
   source        = "../../modules/budget"
-  name          = "fcourt-dev-monthly"
+  name          = "${local.name}-monthly"
   amount        = var.monthly_budget_usd
   email_address = var.budget_email
   tags          = local.tags

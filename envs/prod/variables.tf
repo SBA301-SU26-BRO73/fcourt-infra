@@ -6,7 +6,11 @@ variable "aws_region" {
 variable "vpc_cidr" {
   description = "Production VPC CIDR; must not overlap connected networks."
   type        = string
-  default     = "10.50.0.0/16"
+  validation {
+    condition     = can(cidrhost(var.vpc_cidr, 0))
+    error_message = "vpc_cidr must be a valid IPv4 CIDR block."
+  }
+  default = "10.50.0.0/16"
 }
 variable "cluster_version" {
   description = "EKS Kubernetes version."
@@ -36,10 +40,18 @@ variable "eks_max_size" {
 variable "cluster_public_access_cidrs" {
   description = "Allowed trusted public client CIDRs for the Kubernetes API."
   type        = list(string)
+  validation {
+    condition     = !contains(var.cluster_public_access_cidrs, "0.0.0.0/0")
+    error_message = "Do not expose the Kubernetes API to 0.0.0.0/0; list trusted client CIDRs."
+  }
 }
 variable "admin_principal_arns" {
   description = "IAM user/role ARNs granted cluster-admin access. Required; keep tightly scoped."
   type        = list(string)
+  validation {
+    condition     = length(var.admin_principal_arns) > 0
+    error_message = "At least one admin principal ARN is required."
+  }
 }
 variable "firebase_service_account_json" {
   description = "Sensitive Firebase service-account JSON passed from an approved secret store; never commit it."

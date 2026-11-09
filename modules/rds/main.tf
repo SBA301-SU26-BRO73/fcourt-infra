@@ -1,12 +1,7 @@
-locals {
-  tags = merge(var.tags, {
-    Project = "fcourt", Env = var.env, ManagedBy = "terraform"
-  })
-}
 resource "aws_db_subnet_group" "this" {
   name       = "${var.name}-db"
   subnet_ids = var.subnet_ids
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-db"
   })
 }
@@ -15,7 +10,7 @@ resource "aws_security_group" "this" {
   description = "PostgreSQL access from EKS worker nodes only"
   vpc_id      = var.vpc_id
   egress      = []
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-postgres"
   })
 }
@@ -33,7 +28,6 @@ resource "aws_vpc_security_group_egress_rule" "all" {
   ip_protocol       = "-1"
 }
 resource "aws_db_instance" "this" {
-
   identifier                  = var.name
   engine                      = "postgres"
   engine_version              = var.engine_version
@@ -56,8 +50,7 @@ resource "aws_db_instance" "this" {
   final_snapshot_identifier   = var.env == "prod" ? "${var.name}-final" : null
   auto_minor_version_upgrade  = true
   copy_tags_to_snapshot       = true
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = var.name
   })
-
 }

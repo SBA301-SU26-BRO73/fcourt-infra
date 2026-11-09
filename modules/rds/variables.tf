@@ -5,6 +5,10 @@ variable "name" {
 variable "env" {
   description = "Environment name."
   type        = string
+  validation {
+    condition     = contains(["dev", "prod"], var.env)
+    error_message = "env must be dev or prod."
+  }
 }
 variable "subnet_ids" {
   description = "Private subnet IDs for the DB subnet group."
@@ -41,7 +45,5 @@ variable "engine_version" {
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)
-  default = {
-
-  }
+  default     = {}
 }

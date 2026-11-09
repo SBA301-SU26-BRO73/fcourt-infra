@@ -1,7 +1,7 @@
 resource "aws_s3_bucket" "state" {
   bucket        = var.state_bucket_name
   force_destroy = false
-  tags          = var.tags
+  tags          = local.tags
 
   lifecycle {
     prevent_destroy = true

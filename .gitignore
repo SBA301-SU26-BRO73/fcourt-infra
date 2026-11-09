@@ -1,21 +1,26 @@
+# Terraform working files
 .terraform/
 **/.terraform/**
+
+# State may contain secrets (for example the Firebase key in envs/sandbox/push-test)
 *.tfstate
 *.tfstate.*
-envs/push-test/terraform.tfstate*
-envs/push-test/.terraform/
+
+# Real variable and backend files; keep only the *.example templates
 *.tfvars
 !*.tfvars.example
 backend.hcl
 **/backend.hcl
-*.json
-!modules/workload-identity/lbc-iam-policy.json
-*service-account*key*
-*firebase*key*
-*.tfplan
-*.pem
-*.key
 
-# saved plans can contain sensitive values such as the Firebase key
+# Saved plans can contain sensitive values
+*.tfplan
 tfplan
 **/tfplan
+
+# Credentials
+*.json
+!modules/pod-identity/lbc-iam-policy.json
+*service-account*key*
+*firebase*key*
+*.pem
+*.key

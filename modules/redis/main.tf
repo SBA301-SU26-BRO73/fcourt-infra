@@ -1,19 +1,14 @@
-locals {
-  tags = merge(var.tags, {
-    Project = "fcourt", ManagedBy = "terraform"
-  })
-}
 resource "aws_elasticache_subnet_group" "this" {
   name       = "${var.name}-subnets"
   subnet_ids = var.subnet_ids
-  tags       = local.tags
+  tags       = var.tags
 }
 resource "aws_security_group" "this" {
   name        = "${var.name}-redis"
   description = "Redis from EKS nodes only"
   vpc_id      = var.vpc_id
   egress      = []
-  tags = merge(local.tags, {
+  tags = merge(var.tags, {
     Name = "${var.name}-redis"
   })
 }
@@ -31,7 +26,6 @@ resource "aws_vpc_security_group_egress_rule" "all" {
   ip_protocol       = "-1"
 }
 resource "aws_elasticache_replication_group" "this" {
-
   replication_group_id       = var.name
   description                = "FCourt Redis cache"
   engine                     = "redis"
@@ -48,6 +42,5 @@ resource "aws_elasticache_replication_group" "this" {
   automatic_failover_enabled = var.multi_az
   multi_az_enabled           = var.multi_az
   auto_minor_version_upgrade = true
-  tags                       = local.tags
-
+  tags                       = var.tags
 }
