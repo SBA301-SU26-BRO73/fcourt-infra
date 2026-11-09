@@ -4,8 +4,8 @@ variable "name_prefix" {
   default     = "push"
 }
 
-variable "eks_cluster_name" {
-  description = "Name of an existing EKS cluster used to scope the workload role trust policy; required only when create_workload_role is true."
+variable "eks_cluster_arn" {
+  description = "ARN of the EKS cluster, passed from the eks module output (no data source, so a first apply on an empty account works). Scopes the Pod Identity trust policy; required when create_workload_role is true and identity_mode is pod_identity."
   type        = string
   default     = ""
 }

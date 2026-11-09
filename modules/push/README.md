@@ -16,7 +16,7 @@ module "push" {
 | Name | Description | Required |
 |---|---|---|
 | `name_prefix` | Prefix used for resource names. | no |
-| `eks_cluster_name` | Name of an existing EKS cluster used to scope the workload role trust policy; required only when create_workload_role is true. | no |
+| `eks_cluster_arn` | EKS cluster ARN from the eks module output (not a data source); required when create_workload_role is true and identity_mode is pod_identity. | no |
 | `create_workload_role` | Create the IAM role and policies that notification-service pods assume through Pod Identity or IRSA. | no |
 | `firebase_service_account_json` | Firebase service-account JSON content used by SNS FCM HTTP v1. Supply securely, for example with TF_VAR_firebase_service_account_json. | yes |
 | `alert_topic_arn` | SNS topic ARN for alarms. Leave empty to create alarms without notification actions. | no |

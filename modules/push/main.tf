@@ -1,10 +1,6 @@
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
-data "aws_eks_cluster" "existing" {
-  count = var.create_workload_role ? 1 : 0
-  name  = var.eks_cluster_name
-}
 
 locals {
   alarm_actions      = var.alert_topic_arn == "" ? [] : [var.alert_topic_arn]
@@ -72,7 +68,7 @@ resource "aws_iam_role" "notification_service" {
           "aws:SourceAccount" = data.aws_caller_identity.current.account_id
         }
         ArnEquals = {
-          "aws:SourceArn" = data.aws_eks_cluster.existing[0].arn
+          "aws:SourceArn" = var.eks_cluster_arn
         }
       }
     }]
@@ -101,8 +97,8 @@ resource "aws_iam_role" "notification_service" {
     }
 
     precondition {
-      condition     = !var.create_workload_role || var.eks_cluster_name != ""
-      error_message = "eks_cluster_name is required when create_workload_role is true."
+      condition     = !var.create_workload_role || var.identity_mode != "pod_identity" || var.eks_cluster_arn != ""
+      error_message = "eks_cluster_arn is required when create_workload_role is true and identity_mode is pod_identity."
     }
   }
 }
