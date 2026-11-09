@@ -66,3 +66,15 @@ output "ecr_repository_prefix" {
   description = "Repository prefix used by envs/shared: <registry>/fcourt/<service>."
   value       = "fcourt"
 }
+output "media_bucket_name" {
+  description = "Media bucket for STORAGE_S3_BUCKET (fcourt-gitops scripts/apply-terraform-outputs.sh)."
+  value       = module.media.bucket_name
+}
+output "media_public_base_url" {
+  description = "Regional virtual-hosted bucket URL for STORAGE_PUBLIC_BASE_URL."
+  value       = module.media.public_base_url
+}
+output "media_service_role_arns" {
+  description = "Per-service S3 Pod Identity roles (auth, facility, discovery, payment, booking)."
+  value       = module.media.service_role_arns
+}
