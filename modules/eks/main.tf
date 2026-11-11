@@ -53,7 +53,6 @@ resource "aws_security_group" "cluster" {
   name        = "${var.cluster_name}-control-plane"
   description = "EKS control plane security group"
   vpc_id      = var.vpc_id
-  egress      = []
   tags = merge(var.tags, {
     Name = "${var.cluster_name}-control-plane"
   })
@@ -62,7 +61,6 @@ resource "aws_security_group" "nodes" {
   name        = "${var.cluster_name}-nodes"
   description = "EKS managed worker nodes"
   vpc_id      = var.vpc_id
-  egress      = []
   tags = merge(var.tags, {
     Name = "${var.cluster_name}-nodes", "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   })
