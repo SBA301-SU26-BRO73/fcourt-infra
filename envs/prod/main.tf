@@ -80,6 +80,7 @@ module "push" {
   eks_service_account           = "notification-service"
   oidc_provider_arn             = ""
   delivery_success_sample_rate  = 0
+  enable_delivery_logging       = false # caller lacks iam:PassRole
   tags                          = local.tags
 }
 module "media" {
