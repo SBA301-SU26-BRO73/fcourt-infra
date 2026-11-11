@@ -57,3 +57,28 @@ variable "web_domain" {
   type        = string
   default     = "fcourt.donan.site"
 }
+
+variable "web_github_repository" {
+  description = "GitHub repository (owner/name) allowed to deploy the web build through OIDC."
+  type        = string
+  default     = "SBA301-SU26-BRO73/fcourt-web"
+}
+variable "web_github_immutable_sub_prefix" {
+  description = "Immutable OIDC subject prefix of the web repository (gh api repos/<owner>/<repo>/actions/oidc/customization/sub -> sub_claim_prefix). Empty to skip."
+  type        = string
+  default     = "repo:SBA301-SU26-BRO73@285966060/fcourt-web@1451091528"
+}
+variable "web_github_refs" {
+  description = "Branch names (refs/heads/<name>) allowed to deploy the web build."
+  type        = list(string)
+  default     = ["main"]
+  validation {
+    condition     = length(var.web_github_refs) > 0 && !contains(var.web_github_refs, "*")
+    error_message = "web_github_refs must list explicit branch names, not a wildcard."
+  }
+}
+variable "web_api_origin_label" {
+  description = "Label of the stable record (under web_domain) that points at the EKS ALB; the CloudFront API origin. Updated by scripts/update-origin-record.sh, not by Terraform."
+  type        = string
+  default     = "origin"
+}

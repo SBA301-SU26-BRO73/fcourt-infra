@@ -39,3 +39,7 @@ fi
 
 terraform -chdir="$PROD_DIR" init -backend-config=backend.hcl
 terraform -chdir="$PROD_DIR" apply
+
+echo
+echo "Next: after Argo CD has synced gateway-service (the Ingress gets an ALB address), point the web origin at it:"
+echo "  AWS_PROFILE=tpn12 sh scripts/update-origin-record.sh   # origin.<web domain> -> current ALB (CloudFront API origin)"
