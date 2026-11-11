@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 # Offline checks: formatting plus init (no backend) and validate for every root module.
 # Reusable modules under modules/ are validated through the environments that call them.
-# envs/sandbox/push-test is intentionally excluded (local state with real resources).
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)

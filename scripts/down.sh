@@ -35,7 +35,17 @@ wait_until_empty() {
 
 alb_names() { aws elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerName' --output text | tr '\t' '\n' | grep '^k8s-' || true; }
 lbc_sgs() { aws ec2 describe-security-groups --filters "Name=tag:elbv2.k8s.aws/cluster,Values=$CLUSTER" --query 'SecurityGroups[].GroupId' --output text | tr '\t' '\n'; }
-orphan_volumes() { aws ec2 describe-volumes --filters Name=tag:Project,Values=fcourt Name=status,Values=available --query 'Volumes[].VolumeId' --output text | tr '\t' '\n'; }
+# Volumes created by the EBS CSI driver carry ebs.csi.aws.com/cluster=true (plus Project=fcourt via extraVolumeTags).
+orphan_volumes() {
+  { aws ec2 describe-volumes --filters Name=tag:Project,Values=fcourt Name=status,Values=available --query 'Volumes[].VolumeId' --output text
+    aws ec2 describe-volumes --filters Name=tag:ebs.csi.aws.com/cluster,Values=true Name=status,Values=available --query 'Volumes[].VolumeId' --output text
+  } | tr '\t' '\n' | sort -u | grep -v '^$' || true
+}
+
+# Pin the kube context to this cluster so kubectl can never act on another one.
+aws eks update-kubeconfig --name "$CLUSTER" --region "$AWS_REGION" --alias "$CLUSTER" >/dev/null
+KCTX=$CLUSTER
+kubectl() { command kubectl --context "$KCTX" "$@"; }
 
 echo "Step 1/5: stop Argo CD so it cannot recreate what we delete (selfHeal)..."
 if kubectl get ns argocd >/dev/null 2>&1; then
@@ -52,11 +62,20 @@ else
 fi
 
 echo "Step 2/5: delete Ingresses (the AWS Load Balancer Controller must still run) and wait for the ALB..."
-kubectl delete ingress --all --all-namespaces --ignore-not-found --wait=true --timeout=5m
+if ! kubectl delete ingress --all --all-namespaces --ignore-not-found --wait=true --timeout=5m; then
+  echo "Ingress deletion timed out; stripping Ingress finalizers and continuing..." >&2
+  kubectl get ingress --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' 2>/dev/null |
+    while read -r ns name; do
+      [ -n "$name" ] && kubectl -n "$ns" patch ingress "$name" --type=merge -p '{"metadata":{"finalizers":null}}' || true
+    done
+fi
 wait_until_empty "ALB (k8s-*)" alb_names
 wait_until_empty "controller security groups" lbc_sgs
 
 echo "Step 3/5: delete workloads and PVCs (reclaimPolicy Delete removes the EBS volumes)..."
+# Strimzi KafkaTopics block namespace deletion once the operator is gone: delete them first, then strip finalizers.
+kubectl -n data delete kafkatopic --all --timeout=2m || true
+kubectl -n data get kafkatopic -o name | xargs -r -I{} kubectl --context "$KCTX" -n data patch {} --type=merge -p '{"metadata":{"finalizers":null}}' || true
 kubectl delete namespace fcourt-prod data --ignore-not-found --wait=true --timeout=10m
 kubectl delete pvc --all --all-namespaces --ignore-not-found --wait=true --timeout=5m
 wait_until_empty "unattached fcourt EBS volumes" orphan_volumes
