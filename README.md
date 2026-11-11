@@ -96,6 +96,18 @@ aws iam create-access-key --user-name fcourt-local-s3 --profile tpn12
 aws iam delete-access-key --user-name fcourt-local-s3 --access-key-id OLD_KEY_ID --profile tpn12
 ```
 
+### Web stack (fcourt-web on S3 + CloudFront + Route 53)
+
+`envs/shared/web-cdn.tf` serves the web at `https://fcourt.donan.site` (`var.web_domain`), delegated to the Route 53 zone from `web-dns.tf` (add the four `web_zone_name_servers` as NS records at the registrar first: ACM DNS validation, and so `apply`, waits for the delegation).
+
+- Private bucket `fcourt-web-<account_id>` reached only through CloudFront Origin Access Control. ACM certificate in us-east-1 (provider alias), validated through Route 53. Distribution with alias `A`/`AAAA` records, `PriceClass_200` (includes Asia), no WAF, no logging bucket.
+- Default behavior: S3 with a CloudFront Function that rewrites extension-less paths to `/index.html` (SPA routes). There are no custom error responses on purpose: they would also swallow API 404s.
+- `/api/*`, `/ws-fcourt*`, `/actuator/health`: origin `origin.<web_domain>` over HTTP port 80 (the EKS ALB), `CachingDisabled`, origin request policy `AllViewerExceptHostHeader` (all viewer headers except Host, query strings, cookies; WebSocket upgrade works). The browser stays same-origin, so no CORS.
+- IAM role `fcourt-shared-github-web-deploy` for `SBA301-SU26-BRO73/fcourt-web` on `main` (plain and immutable OIDC subject): `s3:ListBucket/GetObject/PutObject/DeleteObject` on the bucket and `cloudfront:CreateInvalidation` on the distribution only.
+- Outputs `web_bucket_name`, `web_distribution_id`, `github_web_deploy_role_arn` go to the `fcourt-web` repository variables `WEB_BUCKET`, `WEB_DISTRIBUTION_ID`, `AWS_WEB_DEPLOY_ROLE_ARN`.
+
+The ALB hostname changes on every `down.sh`/`up.sh`, so the distribution never references it. `origin.<web_domain>` is a CNAME maintained by `sh scripts/update-origin-record.sh` (reads the `fcourt-prod/gateway-service` Ingress address, UPSERTs the record; Terraform does not manage it). Run it after Argo CD has synced the gateway (bring-up step 3). Until then `/api/*` returns 502/504 while the static site keeps working.
+
 ## 3. Prod root: plan and apply
 
 ```sh
@@ -117,6 +129,7 @@ Created by `envs/prod`: VPC `fcourt-prod` (subnets derived from `vpc_cidr`; no N
 |---|---|
 | `sh scripts/up.sh` | Checks files, profile and `TF_VAR_firebase_service_account_json`, exits 1 if the ECR repository or its images (`fcourt/gateway-service`) are missing, then `init` and one `apply` for `envs/prod`. |
 | `sh scripts/down.sh` | Pins the kube context to the cluster, stops Argo CD (selfHeal), deletes Ingresses (stripping a stuck finalizer) and waits for the ALB and its security groups to vanish, deletes KafkaTopics (stripping finalizers), the `fcourt-prod`/`data` namespaces and PVCs and waits for EBS volumes, then `terraform destroy` of `envs/prod` only, then read-only leftover inventory. Never touches `envs/shared`. |
+| `sh scripts/update-origin-record.sh` | Waits for the `fcourt-prod/gateway-service` Ingress address and UPSERTs `origin.<web domain>` (CloudFront API origin) as a CNAME to it. Run after Argo CD synced the gateway on every bring-up. |
 | `sh scripts/check.sh` | `terraform fmt -check` and `init -backend=false` + `validate` for bootstrap, shared and prod. Needs provider download, no AWS access. |
 
 ## Cost notes
