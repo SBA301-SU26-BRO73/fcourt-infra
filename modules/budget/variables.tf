@@ -6,6 +6,7 @@ variable "name" {
 variable "amount" {
   description = "Monthly budget amount in USD."
   type        = number
+  default     = 20
   validation {
     condition     = var.amount > 0
     error_message = "Budget amount must be greater than zero."

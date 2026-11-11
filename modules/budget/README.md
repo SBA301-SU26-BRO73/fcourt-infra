@@ -1,6 +1,6 @@
 # budget
 
-Monthly AWS cost budget with email alerts at 50% and 100% actual and 100% forecasted spend.
+Monthly AWS cost budget with email alerts at 5, 10 and 15 USD actual and 100% forecasted spend. Credits and refunds are excluded from the cost.
 
 ## Usage
 
@@ -16,7 +16,7 @@ module "budget" {
 | Name | Description | Required |
 |---|---|---|
 | `name` | Name of the monthly AWS cost budget. | yes |
-| `amount` | Monthly budget amount in USD. | yes |
+| `amount` | Monthly budget amount in USD (default 20). | no |
 | `email_address` | Email subscriber for actual and forecasted budget alerts. | yes |
 | `tags` | Tags applied to the budget. | no |
 

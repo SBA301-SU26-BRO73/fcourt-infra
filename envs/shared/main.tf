@@ -25,6 +25,14 @@ module "ecr" {
   tags                          = local.tags
 }
 
+module "budget" {
+  source        = "../../modules/budget"
+  name          = "${local.name}-monthly"
+  amount        = var.monthly_budget_usd
+  email_address = var.budget_email
+  tags          = local.tags
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
   count          = var.create_github_oidc_provider ? 1 : 0
   url            = "https://${local.github_oidc_url}"

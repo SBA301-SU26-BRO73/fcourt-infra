@@ -8,4 +8,8 @@ github_refs       = ["dev", "main"]
 # (aws iam list-open-id-connect-providers); it is then looked up instead of created.
 create_github_oidc_provider = true
 
-tagged_image_count = 10
+tagged_image_count = 3
+
+# Budget lives here so it survives scripts/down.sh. Alerts at 5/10/15 USD actual plus 100% forecast.
+monthly_budget_usd = 20
+budget_email       = "REPLACE_WITH_BUDGET_EMAIL@example.com" # required
