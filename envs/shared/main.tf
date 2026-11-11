@@ -11,6 +11,9 @@ locals {
   }
 
   github_oidc_url = "token.actions.githubusercontent.com"
+
+  # GitHub now issues immutable subjects (repo:<owner>@<owner_id>/<repo>@<repo_id>:...); accept both forms.
+  github_sub_prefixes = compact(["repo:${var.github_repository}", var.github_immutable_sub_prefix])
 }
 
 data "aws_caller_identity" "current" {}
@@ -63,7 +66,7 @@ resource "aws_iam_role" "github_ecr_push" {
       Condition = {
         StringEquals = {
           "${local.github_oidc_url}:aud" = "sts.amazonaws.com"
-          "${local.github_oidc_url}:sub" = [for ref in var.github_refs : "repo:${var.github_repository}:ref:refs/heads/${ref}"]
+          "${local.github_oidc_url}:sub" = flatten([for prefix in local.github_sub_prefixes : [for ref in var.github_refs : "${prefix}:ref:refs/heads/${ref}"]])
         }
       }
     }]
