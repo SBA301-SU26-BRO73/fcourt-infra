@@ -12,6 +12,12 @@ variable "github_repository" {
     error_message = "github_repository must look like owner/name."
   }
 }
+variable "github_immutable_sub_prefix" {
+  description = "Immutable OIDC subject prefix of the repository (gh api repos/<owner>/<repo>/actions/oidc/customization/sub -> sub_claim_prefix). Empty to skip."
+  type        = string
+  default     = "repo:SBA301-SU26-BRO73@285966060/fcourt-backend@1425794607"
+}
+
 variable "github_refs" {
   description = "Branch names (refs/heads/<name>) allowed to assume the push role."
   type        = list(string)
