@@ -130,7 +130,6 @@ resource "aws_security_group" "endpoints" {
   name        = "${var.name}-endpoints"
   description = "HTTPS access to VPC interface endpoints"
   vpc_id      = aws_vpc.this.id
-  egress      = []
   tags = merge(var.tags, {
     Name = "${var.name}-endpoints"
   })
