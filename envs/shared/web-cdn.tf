@@ -182,7 +182,8 @@ resource "aws_cloudfront_distribution" "web" {
   }
 
   dynamic "ordered_cache_behavior" {
-    for_each = ["/api/*", "/ws-fcourt*", "/actuator/health"]
+    # Swagger UI and the aggregated OpenAPI docs are served by gateway-service.
+    for_each = ["/api/*", "/ws-fcourt*", "/actuator/health", "/swagger-ui*", "/v3/api-docs*", "/docs/*"]
     content {
       path_pattern             = ordered_cache_behavior.value
       target_origin_id         = "api-alb"
