@@ -2,7 +2,7 @@
 .terraform/
 **/.terraform/**
 
-# State may contain secrets (for example the Firebase key in envs/sandbox/push-test)
+# State may contain secrets
 *.tfstate
 *.tfstate.*
 
