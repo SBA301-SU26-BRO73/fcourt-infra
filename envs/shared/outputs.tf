@@ -22,3 +22,8 @@ output "local_s3_user_name" {
   description = "IAM user whose access key is created manually for docker-compose."
   value       = aws_iam_user.local_s3.name
 }
+
+output "web_zone_name_servers" {
+  description = "Add these as NS records for the web subdomain at the parent domain's DNS provider."
+  value       = aws_route53_zone.web.name_servers
+}
