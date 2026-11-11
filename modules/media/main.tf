@@ -147,7 +147,7 @@ resource "aws_s3_bucket_policy" "media" {
 # --- Per-service Pod Identity roles ------------------------------------------
 
 resource "aws_iam_role" "service" {
-  for_each = local.service_policies
+  for_each = { for k, v in local.service_policies : k => v if var.create_service_roles }
   name     = "${var.role_name_prefix}-${each.key}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -165,7 +165,7 @@ resource "aws_iam_role" "service" {
 }
 
 resource "aws_iam_role_policy" "service" {
-  for_each = local.service_policies
+  for_each = { for k, v in local.service_policies : k => v if var.create_service_roles }
   name     = "${var.role_name_prefix}-${each.key}-s3"
   role     = aws_iam_role.service[each.key].id
   policy = jsonencode({

@@ -10,3 +10,15 @@ output "github_ecr_push_role_arn" {
   description = "Set as repository variable AWS_ECR_PUSH_ROLE_ARN in SBA301-SU26-BRO73/fcourt-backend."
   value       = aws_iam_role.github_ecr_push.arn
 }
+output "local_media_bucket_name" {
+  description = "Bucket for docker-compose development (STORAGE_S3_BUCKET in fcourt-backend .env)."
+  value       = module.local_media.bucket_name
+}
+output "local_media_public_base_url" {
+  description = "Public base URL of the local bucket (STORAGE_PUBLIC_BASE_URL)."
+  value       = module.local_media.public_base_url
+}
+output "local_s3_user_name" {
+  description = "IAM user whose access key is created manually for docker-compose."
+  value       = aws_iam_user.local_s3.name
+}
