@@ -21,20 +21,20 @@ variable "availability_zones" {
   }
 }
 variable "public_subnet_cidrs" {
-  description = "One public subnet CIDR per AZ."
+  description = "One public subnet CIDR per AZ. Null derives /20 subnets from cidr (indexes 0-2)."
   type        = list(string)
-  default     = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"]
+  default     = null
   validation {
-    condition     = length(var.public_subnet_cidrs) == 3
+    condition     = var.public_subnet_cidrs == null || length(var.public_subnet_cidrs) == 3
     error_message = "Provide three public subnet CIDRs."
   }
 }
 variable "private_subnet_cidrs" {
-  description = "One private subnet CIDR per AZ."
+  description = "One private subnet CIDR per AZ. Null derives /20 subnets from cidr (indexes 3-5)."
   type        = list(string)
-  default     = ["10.0.16.0/20", "10.0.32.0/20", "10.0.48.0/20"]
+  default     = null
   validation {
-    condition     = length(var.private_subnet_cidrs) == 3
+    condition     = var.private_subnet_cidrs == null || length(var.private_subnet_cidrs) == 3
     error_message = "Provide three private subnet CIDRs."
   }
 }
