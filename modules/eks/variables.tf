@@ -16,6 +16,15 @@ variable "public_subnet_ids" {
   type        = list(string)
   default     = []
 }
+variable "node_subnet_count" {
+  description = "Number of subnets (AZs) used by the node group, taken from the start of the chosen set. 1 keeps nodes and EBS volumes in one AZ."
+  type        = number
+  default     = 1
+  validation {
+    condition     = var.node_subnet_count >= 1 && var.node_subnet_count <= 3
+    error_message = "node_subnet_count must be between 1 and 3."
+  }
+}
 variable "nodes_in_public_subnets" {
   description = "Place nodes in public subnets and assign public IPs."
   type        = bool
