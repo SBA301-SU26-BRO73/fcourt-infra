@@ -19,7 +19,7 @@ data "aws_partition" "current" {}
 module "ecr" {
   source                        = "../../modules/ecr"
   repository_prefix             = "fcourt"
-  image_tag_mutability          = "MUTABLE" # CI moves the :dev tag on every push
+  image_tag_mutability          = "MUTABLE" # CI moves tags such as :dev on every push
   tagged_image_count            = var.tagged_image_count
   untagged_image_retention_days = var.untagged_image_retention_days
   tags                          = local.tags

@@ -12,35 +12,41 @@ locals {
 }
 
 module "network" {
-  source               = "../../modules/network"
-  name                 = local.name
-  cluster_name         = local.name
-  cidr                 = var.vpc_cidr
-  single_nat_gateway   = false
-  enable_flow_logs     = var.enable_flow_logs
-  enable_ecr_endpoints = var.enable_ecr_endpoints
-  tags                 = local.tags
+  source                  = "../../modules/network"
+  name                    = local.name
+  cluster_name            = local.name
+  cidr                    = var.vpc_cidr
+  single_nat_gateway      = true
+  nodes_in_public_subnets = var.nodes_in_public_subnets
+  enable_flow_logs        = var.enable_flow_logs
+  enable_ecr_endpoints    = var.enable_interface_endpoints
+  tags                    = local.tags
 }
 module "eks" {
-  source                      = "../../modules/eks"
-  cluster_name                = local.name
-  cluster_version             = var.cluster_version
-  private_subnet_ids          = module.network.private_subnet_ids
-  vpc_id                      = module.network.vpc_id
-  instance_types              = var.eks_instance_types
-  min_size                    = var.eks_min_size
-  desired_size                = var.eks_desired_size
-  max_size                    = var.eks_max_size
-  root_volume_size            = 50
-  cluster_public_access_cidrs = var.cluster_public_access_cidrs
-  admin_principal_arns        = var.admin_principal_arns
-  tags                        = local.tags
+  source                        = "../../modules/eks"
+  cluster_name                  = local.name
+  cluster_version               = var.cluster_version
+  private_subnet_ids            = module.network.private_subnet_ids
+  public_subnet_ids             = module.network.public_subnet_ids
+  nodes_in_public_subnets       = var.nodes_in_public_subnets
+  vpc_id                        = module.network.vpc_id
+  instance_types                = var.eks_instance_types
+  min_size                      = var.eks_min_size
+  desired_size                  = var.eks_desired_size
+  max_size                      = var.eks_max_size
+  root_volume_size              = var.eks_root_volume_size
+  capacity_type                 = var.eks_capacity_type
+  cluster_log_types             = var.eks_cluster_log_types
+  cloudwatch_log_retention_days = var.cloudwatch_log_retention_days
+  enable_secrets_encryption     = var.enable_secrets_encryption
+  cluster_public_access_cidrs   = var.cluster_public_access_cidrs
+  admin_principal_arns          = var.admin_principal_arns
+  tags                          = local.tags
 }
 module "pod_identity" {
   source       = "../../modules/pod-identity"
   cluster_name = module.eks.cluster_name
   cluster_arn  = module.eks.cluster_arn
-  env          = local.env
   tags         = local.tags
 
   extra_associations = merge(
@@ -59,36 +65,6 @@ module "pod_identity" {
     } }
   )
 }
-module "rds" {
-  source                 = "../../modules/rds"
-  name                   = "${local.name}-postgres"
-  env                    = local.env
-  subnet_ids             = module.network.private_subnet_ids
-  vpc_id                 = module.network.vpc_id
-  node_security_group_id = module.eks.node_security_group_id
-  instance_class         = "db.t4g.medium"
-  allocated_storage      = 100
-  multi_az               = true
-  tags                   = local.tags
-}
-module "msk" {
-  source                 = "../../modules/msk"
-  name                   = "${local.name}-kafka"
-  subnet_ids             = slice(module.network.private_subnet_ids, 0, 2)
-  vpc_id                 = module.network.vpc_id
-  node_security_group_id = module.eks.node_security_group_id
-  tags                   = local.tags
-}
-module "redis" {
-  source                 = "../../modules/redis"
-  name                   = "${local.name}-redis"
-  subnet_ids             = module.network.private_subnet_ids
-  vpc_id                 = module.network.vpc_id
-  node_security_group_id = module.eks.node_security_group_id
-  node_type              = "cache.t4g.small"
-  multi_az               = true
-  tags                   = local.tags
-}
 module "push" {
   source                        = "../../modules/push"
   name_prefix                   = "${local.name}-push"
@@ -104,11 +80,18 @@ module "push" {
   delivery_success_sample_rate  = 0
   tags                          = local.tags
 }
+module "budget" {
+  source        = "../../modules/budget"
+  name          = "${local.name}-monthly"
+  amount        = var.monthly_budget_usd
+  email_address = var.budget_email
+  tags          = local.tags
+}
 module "media" {
   source           = "../../modules/media"
   bucket_name      = "${local.name}-media-${data.aws_caller_identity.current.account_id}"
   role_name_prefix = "${local.name}-media"
   cluster_arn      = module.eks.cluster_arn
-  force_destroy    = false # dev is torn down by scripts/down.sh
+  force_destroy    = true # cluster is brought up and down per demo by scripts/up.sh and down.sh
   tags             = local.tags
 }

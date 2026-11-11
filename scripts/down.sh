@@ -1,15 +1,15 @@
 #!/usr/bin/env sh
-# Tear down the dev environment. Usage: sh scripts/down.sh
+# Tear down the prod environment. Usage: sh scripts/down.sh
 # Order matters: stop Argo CD self-heal, delete Ingresses and wait for the ALB to vanish, delete workloads and PVCs
-# (EBS volumes), then terraform destroy for envs/dev ONLY. envs/shared (ECR, CI role) and envs/bootstrap are never touched.
+# (EBS volumes), then terraform destroy for envs/prod ONLY. envs/shared (ECR, CI role) and envs/bootstrap are never touched.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-DEV_DIR="$ROOT/envs/dev"
+PROD_DIR="$ROOT/envs/prod"
 export AWS_PROFILE=${AWS_PROFILE:-tpn12}
 export AWS_REGION=${AWS_REGION:-ap-southeast-1}
 export AWS_DEFAULT_REGION=$AWS_REGION
-CLUSTER=${CLUSTER_NAME:-fcourt-dev}
+CLUSTER=${CLUSTER_NAME:-fcourt-prod}
 TIMEOUT_SECONDS=${TEARDOWN_TIMEOUT_SECONDS:-600}
 
 if [ "$AWS_PROFILE" != "tpn12" ]; then
@@ -57,13 +57,13 @@ wait_until_empty "ALB (k8s-*)" alb_names
 wait_until_empty "controller security groups" lbc_sgs
 
 echo "Step 3/5: delete workloads and PVCs (reclaimPolicy Delete removes the EBS volumes)..."
-kubectl delete namespace fcourt-dev data --ignore-not-found --wait=true --timeout=10m
+kubectl delete namespace fcourt-prod data --ignore-not-found --wait=true --timeout=10m
 kubectl delete pvc --all --all-namespaces --ignore-not-found --wait=true --timeout=5m
 wait_until_empty "unattached fcourt EBS volumes" orphan_volumes
 
-echo "Step 4/5: terraform destroy (envs/dev only; ECR in envs/shared is untouched)..."
-terraform -chdir="$DEV_DIR" init -backend-config=backend.hcl
-terraform -chdir="$DEV_DIR" destroy
+echo "Step 4/5: terraform destroy (envs/prod only; ECR in envs/shared is untouched)..."
+terraform -chdir="$PROD_DIR" init -backend-config=backend.hcl
+terraform -chdir="$PROD_DIR" destroy
 
 echo "Step 5/5: read-only inventory of leftovers in $AWS_REGION (each list should be empty):"
 echo "EKS clusters:";        aws eks list-clusters --output text

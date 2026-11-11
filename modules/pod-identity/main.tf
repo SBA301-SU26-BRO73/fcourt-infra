@@ -1,6 +1,4 @@
 data "aws_caller_identity" "current" {}
-data "aws_partition" "current" {}
-data "aws_region" "current" {}
 
 locals {
   # Trust policy shared by every Pod Identity role in this module.
@@ -45,39 +43,6 @@ resource "aws_eks_pod_identity_association" "load_balancer_controller" {
   role_arn        = aws_iam_role.load_balancer_controller.arn
   tags            = var.tags
   depends_on      = [aws_iam_role_policy_attachment.load_balancer_controller]
-}
-
-# --- External Secrets Operator ----------------------------------------------
-
-resource "aws_iam_role" "external_secrets" {
-  name               = "${var.cluster_name}-external-secrets"
-  assume_role_policy = local.pod_identity_assume_role_policy
-  tags               = var.tags
-}
-
-resource "aws_iam_role_policy" "external_secrets" {
-  name = "${var.cluster_name}-external-secrets-read"
-  role = aws_iam_role.external_secrets.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret",
-        "secretsmanager:ListSecretVersionIds",
-      ]
-      Resource = "arn:${data.aws_partition.current.partition}:secretsmanager:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:secret:/fcourt/${var.env}/*"
-    }]
-  })
-}
-
-resource "aws_eks_pod_identity_association" "external_secrets" {
-  cluster_name    = var.cluster_name
-  namespace       = "external-secrets"
-  service_account = "external-secrets"
-  role_arn        = aws_iam_role.external_secrets.arn
-  tags            = var.tags
 }
 
 # --- Associations for roles created elsewhere (for example notification-service)
