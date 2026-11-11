@@ -183,9 +183,10 @@ resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.cluster_name}-workers"
   node_role_arn   = aws_iam_role.node.arn
-  subnet_ids      = var.nodes_in_public_subnets ? var.public_subnet_ids : var.private_subnet_ids
-  instance_types  = var.instance_types
-  capacity_type   = var.capacity_type
+  # Single AZ (default) so a replaced Spot node cannot strand an EBS volume in another AZ.
+  subnet_ids     = slice(var.nodes_in_public_subnets ? var.public_subnet_ids : var.private_subnet_ids, 0, var.node_subnet_count)
+  instance_types = var.instance_types
+  capacity_type  = var.capacity_type
   scaling_config {
     min_size     = var.min_size
     desired_size = var.desired_size
@@ -240,7 +241,7 @@ resource "aws_launch_template" "nodes" {
   tags = var.tags
 }
 resource "aws_eks_addon" "core" {
-  for_each                    = toset(["vpc-cni", "coredns", "kube-proxy", "eks-pod-identity-agent", "aws-ebs-csi-driver"])
+  for_each                    = toset(["vpc-cni", "coredns", "kube-proxy", "eks-pod-identity-agent"])
   cluster_name                = aws_eks_cluster.this.name
   addon_name                  = each.value
   resolve_conflicts_on_create = "OVERWRITE"
@@ -248,11 +249,19 @@ resource "aws_eks_addon" "core" {
   tags                        = var.tags
   depends_on                  = [aws_eks_node_group.this]
 }
-resource "aws_eks_pod_identity_association" "ebs_csi" {
-  cluster_name    = aws_eks_cluster.this.name
-  namespace       = "kube-system"
-  service_account = "ebs-csi-controller-sa"
-  role_arn        = aws_iam_role.ebs_csi.arn
-  tags            = var.tags
-  depends_on      = [aws_eks_addon.core, aws_iam_role_policy_attachment.ebs_csi]
+resource "aws_eks_addon" "ebs_csi" {
+  cluster_name                = aws_eks_cluster.this.name
+  addon_name                  = "aws-ebs-csi-driver"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "PRESERVE"
+  configuration_values = jsonencode({
+    controller = { extraVolumeTags = { Project = "fcourt", Env = "prod" } }
+  })
+  pod_identity_association {
+    role_arn        = aws_iam_role.ebs_csi.arn
+    service_account = "ebs-csi-controller-sa"
+  }
+  tags = var.tags
+  # The Pod Identity agent must run before the controller pods start so they receive credentials.
+  depends_on = [aws_eks_addon.core, aws_iam_role_policy_attachment.ebs_csi]
 }

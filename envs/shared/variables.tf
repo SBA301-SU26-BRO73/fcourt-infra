@@ -29,10 +29,19 @@ variable "create_github_oidc_provider" {
 variable "tagged_image_count" {
   description = "Tagged images kept per repository."
   type        = number
-  default     = 10
+  default     = 3
 }
 variable "untagged_image_retention_days" {
   description = "Days before untagged images expire."
   type        = number
   default     = 7
+}
+variable "monthly_budget_usd" {
+  description = "Monthly AWS cost budget in USD (account-wide, excludes credits and refunds)."
+  type        = number
+  default     = 20
+}
+variable "budget_email" {
+  description = "Email address for AWS Budget alerts."
+  type        = string
 }

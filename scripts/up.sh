@@ -26,9 +26,15 @@ if [ -z "${TF_VAR_firebase_service_account_json:-}" ]; then
   exit 1
 fi
 
-# Read-only: images live in the shared root, not in prod.
-if ! aws ecr describe-repositories --repository-names fcourt/auth-service >/dev/null 2>&1; then
-  echo "WARNING: ECR repository fcourt/auth-service not found. Apply envs/shared and push images first, or pods will ImagePullBackOff." >&2
+# Read-only: images live in the shared root, not in prod. Missing images mean ImagePullBackOff, so stop here.
+if ! aws ecr describe-repositories --repository-names fcourt/gateway-service >/dev/null 2>&1; then
+  echo "ECR repository fcourt/gateway-service not found. Apply envs/shared first." >&2
+  exit 1
+fi
+image_count=$(aws ecr describe-images --repository-name fcourt/gateway-service --query 'length(imageDetails)' --output text 2>/dev/null || echo 0)
+if [ "$image_count" = "None" ] || [ "${image_count:-0}" -lt 1 ]; then
+  echo "ECR repository fcourt/gateway-service has no images. Push images (CI or manually) before bringing prod up." >&2
+  exit 1
 fi
 
 terraform -chdir="$PROD_DIR" init -backend-config=backend.hcl

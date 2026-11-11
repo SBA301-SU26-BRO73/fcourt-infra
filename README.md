@@ -2,11 +2,11 @@
 
 Terraform for FCourt (court-booking system: Spring Boot microservices on Kafka) on AWS, region `ap-southeast-1`.
 
-There is **one environment, `prod`**. Everything data-related (PostgreSQL, Kafka, Redis) runs inside the Kubernetes cluster and is managed by the `fcourt-gitops` repo; Terraform only creates the AWS pieces around it. The cluster is cheap by design (two Spot nodes, one NAT or none, EKS 1.35) and is brought up for a demo and destroyed right after (`scripts/up.sh`, `scripts/down.sh`).
+There is **one environment, `prod`**. Everything data-related (PostgreSQL, Kafka, Redis) runs inside the Kubernetes cluster and is managed by the `fcourt-gitops` repo; Terraform only creates the AWS pieces around it. The cluster is cheap by design (two Spot nodes in a single AZ, no NAT by default, EKS 1.35) and is brought up for a demo and destroyed right after (`scripts/up.sh`, `scripts/down.sh`).
 
 Use the AWS CLI profile `tpn12` for every command (`export AWS_PROFILE=tpn12`). Terraform `>= 1.10.0` is required (S3 native state locking).
 
-Order of work: **bootstrap -> shared -> prod**.
+Order of work: **bootstrap -> shared -> push images (CI or manual) -> prod**.
 
 ## Layout
 
@@ -14,10 +14,8 @@ Order of work: **bootstrap -> shared -> prod**.
 fcourt-infra/
 ├── envs/                      # root modules, one state each
 │   ├── bootstrap/             # S3 state bucket (local state, applied once)
-│   ├── shared/                # long-lived: ECR repos, GitHub OIDC + ECR push role, local media bucket + IAM user (S3 backend)
-│   ├── prod/                  # the only environment: VPC, EKS, Pod Identity, push, budget, media (S3 backend)
-│   └── sandbox/
-│       └── push-test/         # throwaway SNS push test, NOT an environment (local state, not checked by scripts/check.sh)
+│   ├── shared/                # long-lived: ECR repos, GitHub OIDC + ECR push role, monthly budget, local media bucket + IAM user (S3 backend)
+│   └── prod/                  # the only environment: VPC, EKS, Pod Identity, push, media (S3 backend)
 ├── modules/                   # reusable building blocks, each with README.md
 │   ├── network/               # VPC, subnets, NAT, endpoints, flow logs
 │   ├── eks/                   # cluster, node group, add-ons, access entries
@@ -54,7 +52,7 @@ The bucket is versioned, encrypted, private, TLS-only and `prevent_destroy`. It 
 
 ```sh
 cp envs/prod/backend.hcl.example envs/prod/backend.hcl                 # set bucket
-cp envs/prod/terraform.tfvars.example envs/prod/terraform.tfvars       # set admin ARN, your IP CIDR, budget email
+cp envs/prod/terraform.tfvars.example envs/prod/terraform.tfvars       # set admin ARN and your IP CIDR
 ```
 
 `backend.hcl`, `terraform.tfvars`, state and plan files are gitignored. Do not commit them.
@@ -63,7 +61,7 @@ cp envs/prod/terraform.tfvars.example envs/prod/terraform.tfvars       # set adm
 
 `envs/shared` owns what must survive prod destroys:
 
-- 13 ECR repositories `fcourt/<service>` (12 services plus `gateway-service`): scan on push, mutable tags so CI can move `:latest`, keep last 10 tagged images, untagged expire after 7 days.
+- 13 ECR repositories `fcourt/<service>` (12 services plus `gateway-service`): scan on push, mutable tags so CI can move `:latest`, keep last 3 tagged images, untagged expire after 7 days.
 - The GitHub Actions OIDC provider and the IAM role `fcourt-shared-github-ecr-push`. The role trusts only `repo:SBA301-SU26-BRO73/fcourt-backend:ref:refs/heads/{dev,main}` and can push only to those repositories.
 - The **local media bucket** `fcourt-local-media-<account_id>` and the IAM user `fcourt-local-s3` (see below).
 
@@ -109,7 +107,7 @@ terraform -chdir=envs/prod plan
 terraform -chdir=envs/prod apply
 ```
 
-Created by `envs/prod`: VPC `fcourt-prod` (single NAT, or none with `nodes_in_public_subnets`), EKS cluster `fcourt-prod` (Spot nodes, EBS CSI), Pod Identity roles for the Load Balancer Controller, EBS CSI, notification-service and five media services, the SNS FCM platform application, the media bucket `fcourt-prod-media-<account_id>` (`force_destroy = true`, since the cluster is torn down per demo) and a monthly budget.
+Created by `envs/prod`: VPC `fcourt-prod` (subnets derived from `vpc_cidr`; no NAT by default because `nodes_in_public_subnets = true`), EKS cluster `fcourt-prod` (Spot nodes in one AZ, EBS CSI with its own Pod Identity role and tagged volumes), Pod Identity roles for the Load Balancer Controller, EBS CSI, notification-service and five media services, the SNS FCM platform application, the media bucket `fcourt-prod-media-<account_id>` (`force_destroy = true`, since the cluster is torn down per demo). The monthly budget lives in `envs/shared` so it survives `scripts/down.sh`.
 
 `terraform -chdir=envs/prod output -json gitops_values` prints what `fcourt-gitops` needs: `region`, `cluster_name`, `namespace`, `vpc_id`, `push_platform_application_arn`, `media_bucket_name`, `media_public_base_url`. Other outputs: ECR registry URL, role ARNs, cluster endpoint and CA.
 
@@ -117,18 +115,18 @@ Created by `envs/prod`: VPC `fcourt-prod` (single NAT, or none with `nodes_in_pu
 
 | Script | What it does |
 |---|---|
-| `sh scripts/up.sh` | Checks files, profile and `TF_VAR_firebase_service_account_json`, warns if ECR is missing, then `init` and one `apply` for `envs/prod`. |
-| `sh scripts/down.sh` | Stops Argo CD (selfHeal), deletes Ingresses and waits for the ALB and its security groups to vanish, deletes `fcourt-prod`/`data` namespaces and PVCs and waits for EBS volumes, then `terraform destroy` of `envs/prod` only, then read-only leftover inventory. Never touches `envs/shared`. |
-| `sh scripts/check.sh` | `terraform fmt -check` and `init -backend=false` + `validate` for bootstrap, shared and prod. Needs provider download, no AWS access. Sandbox is not checked. |
+| `sh scripts/up.sh` | Checks files, profile and `TF_VAR_firebase_service_account_json`, exits 1 if the ECR repository or its images (`fcourt/gateway-service`) are missing, then `init` and one `apply` for `envs/prod`. |
+| `sh scripts/down.sh` | Pins the kube context to the cluster, stops Argo CD (selfHeal), deletes Ingresses (stripping a stuck finalizer) and waits for the ALB and its security groups to vanish, deletes KafkaTopics (stripping finalizers), the `fcourt-prod`/`data` namespaces and PVCs and waits for EBS volumes, then `terraform destroy` of `envs/prod` only, then read-only leftover inventory. Never touches `envs/shared`. |
+| `sh scripts/check.sh` | `terraform fmt -check` and `init -backend=false` + `validate` for bootstrap, shared and prod. Needs provider download, no AWS access. |
 
 ## Cost notes
 
 Prices below are rough estimates from memory (Singapore, 4-hour demo), not quotes. Check the AWS pricing pages.
 
-- Node group is `SPOT`, min/desired/max `2/2/2`, 20 GiB gp3 root, IMDSv2. Three interchangeable 2 vCPU/8 GiB types (`t3.large`, `t3a.large`, `m6i.large`) improve Spot availability. Spot can be reclaimed at any time; use On-Demand if a demo must not be interrupted. One 8 GiB node is not enough for 12 services, Eureka, the gateway and data.
+- Node group is `SPOT`, min/desired/max `2/2/3`, all nodes in a single AZ (`node_subnet_count = 1`, so a replaced Spot node cannot strand an EBS volume in another AZ), 20 GiB gp3 root, IMDSv2. Six interchangeable 2 vCPU/8 GiB types (`t3.large`, `t3a.large`, `m5.large`, `m6i.large`, `m6a.large`, `m7i.large`) improve Spot availability. Spot can be reclaimed at any time; use On-Demand if a demo must not be interrupted. One 8 GiB node is not enough for 12 services, Eureka, the gateway and data.
 - `nodes_in_public_subnets = true` puts nodes in public subnets and skips the NAT gateway (about $0.06/h saved). Nodes get public IPs but security groups allow no inbound traffic and the API is limited to `cluster_public_access_cidrs`. Use for short demos only.
 - Control-plane logging, VPC flow logs, interface endpoints and KMS secrets encryption are off by default.
-- Budget alert: `monthly_budget_usd = 20`, emails at 50% and 100% actual and 100% forecast. Alerts do not stop spending.
+- Budget alert (in `envs/shared`, excludes credits and refunds): `monthly_budget_usd = 20`, emails at 5, 10 and 15 USD actual and 100% forecast. Alerts do not stop spending.
 - Rough cost while running: EKS control plane ~$0.10/h, one Spot node ~$0.05-0.15/h, ALB ~$0.02-0.03/h. That is roughly $1-2 for a 4-hour demo.
 
 **Shut down after the demo** (`sh scripts/down.sh`). Things that still cost money after destroy if forgotten: leftover EBS volumes (PVCs), ALBs created by Ingress, old state bucket versions, active SNS resources.
@@ -137,24 +135,10 @@ Sizing: request memory is about 8 GiB for everything; two 8 GiB nodes is the min
 
 ## Bring-up order
 
-1. `bootstrap` (once), then `shared` (once), then CI pushes images on merge to `dev` (or push manually).
+1. `bootstrap` (once), then `shared` (once), then push images (CI on merge to `dev`, or manually). `up.sh` refuses to run until `fcourt/gateway-service` has an image. Then prod.
 2. `sh scripts/up.sh` runs one `terraform apply` of `envs/prod` (module `push` takes the cluster ARN from `module.eks`, so no `-target` is needed).
 3. Follow the `fcourt-gitops` README for Argo CD, secrets and the root app.
 4. `sh scripts/down.sh` when done.
-
-## Sandbox: push notification test
-
-`envs/sandbox/push-test` creates only the SNS FCM platform application and a CloudWatch alarm, without EKS, so Firebase delivery can be tried cheaply. It uses **local state** that contains the Firebase key: keep `terraform.tfstate` on this machine, never copy or commit it. It is not part of `scripts/check.sh`.
-
-```sh
-export AWS_PROFILE=tpn12
-export TF_VAR_firebase_service_account_json="$(cat /path/to/firebase-service-account.json)"
-terraform -chdir=envs/sandbox/push-test init
-terraform -chdir=envs/sandbox/push-test apply
-# when done
-terraform -chdir=envs/sandbox/push-test destroy
-unset TF_VAR_firebase_service_account_json
-```
 
 ## Out of scope
 

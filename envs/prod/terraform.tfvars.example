@@ -6,12 +6,12 @@ cluster_version = "1.35"
 
 # Cheapest working demo: 2 x 8 GiB Spot nodes (t3.large 2 vCPU / 8 GiB). 12 Spring Boot services, Eureka, the gateway plus
 # PostgreSQL, Kafka, Redis and Argo CD need about 9 GiB of memory requests (12 GiB or more actual use), so one 8 GiB node is not enough.
-eks_instance_types   = ["t3.large", "t3a.large", "m6i.large"]
+eks_instance_types   = ["t3.large", "t3a.large", "m5.large", "m6i.large", "m6a.large", "m7i.large"]
 eks_capacity_type    = "SPOT" # use "ON_DEMAND" on demo day if an interruption is unacceptable
 eks_root_volume_size = 20
 eks_min_size         = 2
 eks_desired_size     = 2
-eks_max_size         = 2
+eks_max_size         = 3
 
 # Nodes in public subnets, no NAT gateway (saves about 0.06 USD/h). Short demos only.
 nodes_in_public_subnets = true
@@ -29,5 +29,3 @@ enable_interface_endpoints = false
 eks_cluster_log_types      = []
 cloudwatch_log_retention_days = 3
 enable_secrets_encryption  = false
-monthly_budget_usd         = 20
-budget_email               = "REPLACE_WITH_BUDGET_EMAIL@example.com" # required; owner supplies the real address
