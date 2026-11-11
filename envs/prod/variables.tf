@@ -20,7 +20,7 @@ variable "cluster_version" {
 variable "eks_instance_types" {
   description = "Diversified 2-vCPU, 8-GiB EC2 types for the demo node group (Spot pool diversification)."
   type        = list(string)
-  default     = ["t3.large", "t3a.large", "m6i.large"]
+  default     = ["t3.large", "t3a.large", "m5.large", "m6i.large", "m6a.large", "m7i.large"]
 }
 variable "eks_capacity_type" {
   description = "Managed node group capacity type."
@@ -57,7 +57,7 @@ variable "eks_desired_size" {
 variable "eks_max_size" {
   description = "Maximum EKS worker count."
   type        = number
-  default     = 2
+  default     = 3
 }
 variable "cluster_public_access_cidrs" {
   description = "Allowed public Kubernetes API client CIDRs. Replace the example with trusted IP ranges."
@@ -103,7 +103,7 @@ variable "enable_interface_endpoints" {
 variable "nodes_in_public_subnets" {
   description = "Place nodes in public subnets with public IPs and skip NAT for the cheapest demo."
   type        = bool
-  default     = false
+  default     = true
 }
 variable "eks_cluster_log_types" {
   description = "EKS control-plane log types; empty disables control-plane logging."
@@ -119,13 +119,4 @@ variable "enable_secrets_encryption" {
   description = "Encrypt Kubernetes secrets with a customer-managed KMS key."
   type        = bool
   default     = false
-}
-variable "monthly_budget_usd" {
-  description = "Monthly AWS cost budget in USD."
-  type        = number
-  default     = 20
-}
-variable "budget_email" {
-  description = "Email address for AWS Budget alerts."
-  type        = string
 }

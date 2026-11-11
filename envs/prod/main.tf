@@ -16,6 +16,8 @@ module "network" {
   name                    = local.name
   cluster_name            = local.name
   cidr                    = var.vpc_cidr
+  public_subnet_cidrs     = [for i in range(3) : cidrsubnet(var.vpc_cidr, 4, i)]
+  private_subnet_cidrs    = [for i in range(3) : cidrsubnet(var.vpc_cidr, 4, i + 3)]
   single_nat_gateway      = true
   nodes_in_public_subnets = var.nodes_in_public_subnets
   enable_flow_logs        = var.enable_flow_logs
@@ -79,13 +81,6 @@ module "push" {
   oidc_provider_arn             = ""
   delivery_success_sample_rate  = 0
   tags                          = local.tags
-}
-module "budget" {
-  source        = "../../modules/budget"
-  name          = "${local.name}-monthly"
-  amount        = var.monthly_budget_usd
-  email_address = var.budget_email
-  tags          = local.tags
 }
 module "media" {
   source           = "../../modules/media"
