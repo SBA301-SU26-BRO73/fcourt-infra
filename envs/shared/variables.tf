@@ -51,3 +51,9 @@ variable "budget_email" {
   description = "Email address for AWS Budget alerts."
   type        = string
 }
+
+variable "web_domain" {
+  description = "Domain that serves fcourt-web through CloudFront; a subdomain delegated to Route 53."
+  type        = string
+  default     = "fcourt.donan.site"
+}
