@@ -20,7 +20,6 @@ variable "services" {
     "staff-operations-service",
     "notification-service",
     "pos-retail-service",
-    "eureka-server",
     "gateway-service"
   ]
   validation {

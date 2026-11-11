@@ -63,7 +63,7 @@ cp envs/prod/terraform.tfvars.example envs/prod/terraform.tfvars       # set adm
 
 `envs/shared` owns what must survive prod destroys:
 
-- 14 ECR repositories `fcourt/<service>` (12 services plus `eureka-server` and `gateway-service`): scan on push, mutable tags so CI can move `:dev`, keep last 10 tagged images, untagged expire after 7 days.
+- 13 ECR repositories `fcourt/<service>` (12 services plus `gateway-service`): scan on push, mutable tags so CI can move `:latest`, keep last 10 tagged images, untagged expire after 7 days.
 - The GitHub Actions OIDC provider and the IAM role `fcourt-shared-github-ecr-push`. The role trusts only `repo:SBA301-SU26-BRO73/fcourt-backend:ref:refs/heads/{dev,main}` and can push only to those repositories.
 - The **local media bucket** `fcourt-local-media-<account_id>` and the IAM user `fcourt-local-s3` (see below).
 
