@@ -39,7 +39,7 @@ variable "private_subnet_cidrs" {
   }
 }
 variable "single_nat_gateway" {
-  description = "Use one NAT gateway for dev; false creates one per AZ."
+  description = "Use one NAT gateway for a single NAT (cheap); false creates one per AZ."
   type        = bool
   default     = true
 }

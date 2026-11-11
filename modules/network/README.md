@@ -20,7 +20,7 @@ module "network" {
 | `availability_zones` | Three ap-southeast-1 availability zones. | no |
 | `public_subnet_cidrs` | One public subnet CIDR per AZ. | no |
 | `private_subnet_cidrs` | One private subnet CIDR per AZ. | no |
-| `single_nat_gateway` | Use one NAT gateway for dev; false creates one per AZ. | no |
+| `single_nat_gateway` | Use one NAT gateway for a single NAT (cheap); false creates one per AZ. | no |
 | `nodes_in_public_subnets` | Skip NAT gateways when EKS nodes use public subnets. | no |
 | `enable_flow_logs` | Create VPC Flow Logs to CloudWatch. | no |
 | `enable_ecr_endpoints` | Create paid ECR interface endpoints when avoiding NAT for image pulls. | no |

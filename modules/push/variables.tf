@@ -53,7 +53,7 @@ variable "identity_mode" {
 variable "eks_namespace" {
   description = "Kubernetes namespace containing notification-service."
   type        = string
-  default     = "fcourt-dev"
+  default     = "fcourt-prod"
 }
 
 variable "eks_service_account" {
