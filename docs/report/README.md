@@ -1,5 +1,5 @@
-# Report
+# Báo cáo
 
-Folder for project report deliverables (DOCX, PDF) about the AWS infrastructure.
+Thư mục chứa các sản phẩm báo cáo của dự án (DOCX, PDF) về hạ tầng AWS.
 
-Binary files here are ignored by git (see `.gitignore`); only this README and `.gitkeep` are tracked.
+File nhị phân ở đây bị git bỏ qua (xem `.gitignore`); chỉ README này và `.gitkeep` được theo dõi.
