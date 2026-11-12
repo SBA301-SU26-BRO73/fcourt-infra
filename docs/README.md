@@ -1,9 +1,9 @@
-# fcourt-infra docs
+# Tài liệu fcourt-infra
 
-| Folder | Content |
+| Thư mục | Nội dung |
 |---|---|
-| [architecture/](architecture/) | [Layout and conventions](architecture/layout-and-conventions.md), [out of scope](architecture/out-of-scope.md) |
-| [operations/](operations/) | [Bootstrap and shared root](operations/bootstrap-and-shared.md) (state bucket, ECR, GitHub roles, local media bucket, web stack), [prod root](operations/prod-root.md), [scripts and bring-up order](operations/scripts-and-bring-up.md), [cost notes](operations/cost-notes.md) |
-| [report/](report/) | Local-only report deliverables (DOCX/PDF are git-ignored) |
+| [architecture/](architecture/) | [Cấu trúc và quy ước](architecture/layout-and-conventions.md), [ngoài phạm vi](architecture/out-of-scope.md) |
+| [operations/](operations/) | [Bootstrap và shared root](operations/bootstrap-and-shared.md) (state bucket, ECR, GitHub role, media bucket local, stack web), [prod root](operations/prod-root.md), [script và thứ tự bring-up](operations/scripts-and-bring-up.md), [ghi chú chi phí](operations/cost-notes.md) |
+| [report/](report/) | Sản phẩm báo cáo chỉ lưu local (DOCX/PDF bị git-ignore) |
 
-Module documentation lives next to the code in `modules/<name>/README.md`. The main README is [../README.md](../README.md).
+Tài liệu của từng module nằm cạnh mã nguồn trong `modules/<name>/README.md`. README chính là [../README.md](../README.md).
